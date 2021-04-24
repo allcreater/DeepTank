@@ -17,8 +17,8 @@ public:
     Tile &getTile(glm::ivec2 pos) { return tiles[pos.y * size.x + pos.x]; }
     const Tile &getTile(glm::ivec2 pos) const { return tiles[pos.y * size.x + pos.x]; }
 
-    void visit(std::function<void(glm::ivec2, Tile &)> visitor);
-    void visit(std::function<void(glm::ivec2, const Tile &)> visitor) const;
+    void visit(const std::function<void(glm::ivec2, Tile &)> &visitor);
+    void visit(const std::function<void(glm::ivec2, const Tile &)> &visitor) const;
 
 private:
     int heightOffset = 0;

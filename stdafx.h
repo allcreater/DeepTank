@@ -8,6 +8,7 @@
 #include <string_view>
 #include <span>
 #include <functional>
+#include <ranges>
 
 #include <random>
 

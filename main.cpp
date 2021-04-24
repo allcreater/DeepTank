@@ -16,14 +16,30 @@ int main()
     if (!texture.loadFromFile("Resources/tiles.png"))
         return EXIT_FAILURE;
 
-    sf::Sprite sprite(texture);
+    sf::Texture tankTexture;
+    if (!tankTexture.loadFromFile("Resources/tank.png"))
+        return EXIT_FAILURE;
+
+    sf::Sprite sprite(tankTexture);
+    sprite.setScale(1 / 16.0, 1 / 16.0);
+    sprite.setPosition(128, 128);
+
     // Create a graphical text to display
     sf::Font font;
 
     World world {&texture};
 
-    LayerRenderer renderer{ world.tilesTexture };
-    renderer.update(*world.getLayer(0), world);
+
+    std::vector<LayerRenderer> renderers;
+    for (size_t i = 3; i > 0; --i)
+    {
+        auto& renderer = renderers.emplace_back(&texture);
+        renderer.update(*world.getLayer(i), world);
+    }
+    
+
+    sf::Clock clock;
+    int layer = 0;
 
     // Start the game loop
     while (window.isOpen())
@@ -36,10 +52,28 @@ int main()
             if (event.type == sf::Event::Closed)
                 window.close();
         }
+
+        const auto aspectRatio = static_cast<float>(window.getSize().y) / window.getSize().x;
+
+        const float range = 64;
+        sf::View view{{128, 128}, {range, range * aspectRatio}};
+        window.setView(view);
+
+        if (clock.getElapsedTime().asSeconds() > 1.0f)
+        {
+            //renderer.update(*world.getLayer(layer % 16), world);
+            clock.restart();
+        }
+
         // Clear screen
         window.clear(sf::Color::Magenta);
 
-        window.draw(renderer);
+        sf::RenderStates states;
+        for (const auto &renderer : renderers)
+        {
+            states.transform.scale(1.1, 1.1);
+            window.draw(renderer);
+        }
 
         window.draw(sprite);
 
