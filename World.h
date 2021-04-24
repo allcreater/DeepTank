@@ -26,28 +26,20 @@ private:
     std::vector<Tile> tiles;
 };
 
-class World;
-
-class LayerRenderer : public sf::Drawable
-{
-public:
-    LayerRenderer(sf::Texture *texture) : texture{texture} {}
-    void update(const LevelLayer &layer, const World& world);
-
-    void draw(sf::RenderTarget &target, sf::RenderStates states) const override;
-
-private:
-    sf::Texture *texture;
-    sf::VertexArray vertexArray {sf::Quads};
-};
-
 class World
 {
 public:
-    explicit World(sf::Texture *tilesTexture);
-    sf::Texture* tilesTexture;
+    explicit World();
 
-    LevelLayer *getLayer(int depth) { return &layers[depth - firstLayerDepth]; } //TODO доделать и добавить проверки
+    LevelLayer *getLayer(int depth)
+    {
+        const int index = depth - firstLayerDepth;
+        if (index < 0 || index >= layers.size())
+            return nullptr;
+
+        return &layers[index];
+    }
+
     std::span<const TileClass> getClasses() const { return tileClasses; }
 
 private:

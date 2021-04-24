@@ -3,6 +3,8 @@
 #include <SFML/Audio.hpp>
 #include <SFML/Graphics.hpp>
 
+
+#include "WorldRenderer.h"
 #include "World.h"
 
 class App
@@ -37,24 +39,28 @@ public:
     }
 
 private:
+    static void loadTextureOrThrow(sf::Texture& texture, const std::string& name)
+    {
+        if (!texture.loadFromFile(name))
+            throw std::runtime_error{"texture "s + name + " can't be loaded"s};
+    }
+
     void Init()
     {
-        if (!tilesTexture.loadFromFile("Resources/tiles.png"))
-            return;
+        tilesAtlas = TextureAtlas::MakeFromRegularGrid("Resources/tiles.png", {12, 12}, 6);
 
-        if (!tankTexture.loadFromFile("Resources/tank.png"))
-            return;
+        loadTextureOrThrow(tankTexture, "Resources/tank.png");
 
         tankSprite.setTexture(tankTexture);
         tankSprite.setScale(1 / 16.0, 1 / 16.0);
         tankSprite.setPosition(128, 128);
 
-        world = std::make_unique<World>(&tilesTexture);
+        world = std::make_unique<World>();
 
         for (size_t i = 3; i > 0; --i)
         {
-            auto &renderer = renderers.emplace_back(&tilesTexture);
-            renderer.update(*world->getLayer(i), *world);
+            auto &renderer = renderers.emplace_back();
+            renderer.update(*world->getLayer(i), tilesAtlas);
         }
     }
 
@@ -86,7 +92,8 @@ private:
 
 private:
     sf::RenderWindow window;
-    sf::Texture tilesTexture, tankTexture;
+    TextureAtlas tilesAtlas;
+    sf::Texture tankTexture;
 
     sf::Sprite tankSprite;
 
