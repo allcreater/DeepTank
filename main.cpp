@@ -91,12 +91,16 @@ private:
         world = std::make_unique<World>();
         world->setGenerator(std::make_shared<WorldGenerator>(glm::uvec2{256, 256}));
 
-        
-        auto tankActor = std::make_unique<Character>();
-        tankActor->setTexture(tankTexture);
-        tankActor->setPosition({128, 128, 0.0});
 
-        playerActor = &world->addActor(std::move(tankActor));
+        {
+            auto tankActor = std::make_unique<Tank>();
+            tankActor->setTexture(tankTexture);
+            tankActor->setSize(4);
+            tankActor->setPosition({128, 128, 0.0});
+
+            playerActor = tankActor.get();
+            world->addActor(std::move(tankActor));
+        }
 
         worldRenderer = std::make_unique<WorldRenderer>(*world, tilesAtlas);
     }
@@ -112,6 +116,18 @@ private:
             cameraPosition.x -= cameraSpeed;
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::D))
             cameraPosition.x += cameraSpeed;
+
+        glm::vec2 velocity{};
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up))
+            velocity += glm::vec2{0.0f, -4.0f};
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down))
+            velocity += glm::vec2{0.0f, 4.0f};
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
+            velocity += glm::vec2{-4.0f, 0.0f};
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right))
+            velocity += glm::vec2{4.0f, 0.0f};
+
+        playerActor->setVelocity(velocity);
 
 
         sf::View view{{cameraPosition.x, cameraPosition.y},
@@ -148,7 +164,7 @@ private:
     sf::Vector2f cameraPosition = {128, 128};
     int visibleLayer = 0;
 
-    Actor *playerActor = nullptr;
+    Character *playerActor = nullptr;
 };
 
 int main()

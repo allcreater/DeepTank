@@ -18,8 +18,6 @@ public:
 
         //    std::span<const Tile> getData() const { return tiles; }
 
-    std::future<void> beginIntialize(std::shared_ptr<WorldGenerator> generator);
-
     Tile &getTile(glm::ivec2 pos);
     const Tile &getTile(glm::ivec2 pos) const;
 
@@ -75,6 +73,9 @@ public:
 
     void setGenerator(std::shared_ptr<WorldGenerator> _generator) { generator = std::move(_generator); }
     std::span<const TileClass> getClasses() const { return tileClasses; }
+
+private:
+    void onLayerLoaded(const LevelLayer &layer);
 
 private:
     struct UnavailableLevel{};

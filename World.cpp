@@ -91,8 +91,8 @@ void LevelLayer::visit(const std::function<void(glm::ivec2, Tile &)> &visitor, g
 
 World::World()
 {
-    tileClasses.emplace_back( 0, "crystal"s );
-    tileClasses.emplace_back( 1, "empty"s, 0, false );
+    tileClasses.emplace_back( 0, "empty"s, 0, false );
+    tileClasses.emplace_back( 1, "crystal"s );
     tileClasses.emplace_back( 2, "ground"s );
     tileClasses.emplace_back( 3, "rock"s );
     tileClasses.emplace_back( 4, "cuprum_ore"s );
@@ -135,7 +135,7 @@ World::CellType World::categorizeTile(glm::ivec3 point) const
     if (!floorLayer || !floorLayer->isLoaded())
         return CellType::Unloaded;
 
-    const auto &floorClass = getClasses()[wallLayer->getTile(horizontalPoint).classId];
+    const auto &floorClass = getClasses()[floorLayer->getTile(horizontalPoint).classId];
     if (floorClass.isSolid)
         return CellType::Floor;
 
@@ -157,10 +157,14 @@ void World::Update(float dt)
     // включаем загруженные слои
     for (auto& layer : layers)
     {
-        std::visit(overloaded{[&layer](std::future<LevelLayer> &future) {
-                                  if (future.wait_until(std::chrono::system_clock::time_point::min()) ==
+        std::visit(overloaded{[this, &layer](std::future<LevelLayer> &future) {
+                                  if (future.wait_until(std::chrono::system_clock::time_point::min()) !=
                                       std::future_status::ready)
-                                      layer = future.get();
+                                      return;
+
+                                  layer = future.get();
+                                  onLayerLoaded(std::get<LevelLayer>(layer));
+                                  
                               },
                               [](const auto&) {}},
                    layer);
@@ -171,8 +175,11 @@ void World::Update(float dt)
         layers.push_back(generator->generateLevelLayerAsync(firstLayerDepth + i));
     }
 
-    for (auto& actor : actors)
-        actor->update(dt, *this);
+    for (auto &actor : actors)
+    {
+        if (const auto layer = getLayer(actor->getPosition().z))
+            actor->update(dt, *this);
+    }
 
     auto tailRange = std::ranges::remove_if(actors, [](const std::unique_ptr<Actor> &actor)
     {
@@ -184,4 +191,13 @@ void World::Update(float dt)
     });
     actors.erase(tailRange.begin(), tailRange.end());
 
+}
+
+void World::onLayerLoaded(const LevelLayer &layer)
+{
+    for (const auto &actor : actors)
+    {
+        if (actor->getPosition().z == layer.getDepth())
+            actor->onReady(*this);
+    }
 }
