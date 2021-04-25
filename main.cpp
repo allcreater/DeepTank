@@ -7,6 +7,8 @@
 #include "WorldRenderer.h"
 #include "World.h"
 
+#include <chrono>
+
 class App
 {
 public:
@@ -21,7 +23,9 @@ public:
 
         Init();
 
-        sf::Clock frameClock, performanceCounterClock;
+        auto prevTime = std::chrono::high_resolution_clock::now();
+
+        sf::Clock performanceCounterClock;
         size_t fps = 0;
         while (window.isOpen())
         {
@@ -34,10 +38,12 @@ public:
                     OnWindowEvent(sf::Utils::MakeTypeSafeEvent(event));
             }
 
-            Update(frameClock.getElapsedTime().asSeconds());
-            Render();
+            const auto newTime = std::chrono::high_resolution_clock::now();
+            const float dt = std::chrono::duration_cast<std::chrono::microseconds>(newTime - prevTime).count() / 1000000.0f;
+            prevTime = newTime;
 
-            frameClock.restart();
+            Update(dt);
+            Render();
 
             if (performanceCounterClock.getElapsedTime().asSeconds() >= 1.0f)
             {
@@ -82,7 +88,7 @@ private:
 
     void Update(float dt)
     {
-        const auto cameraSpeed = 1;
+        const auto cameraSpeed = 1000.0f * dt;
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::W))
             cameraPosition.y -= cameraSpeed;
         if (sf::Keyboard::isKeyPressed(sf::Keyboard::S))

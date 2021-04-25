@@ -53,7 +53,7 @@ WorldRenderer::WorldRenderer(World &world, TextureAtlas &tilesAtlas) : world{wor
 
 void WorldRenderer::draw(sf::RenderTarget &target, sf::RenderStates states) const
 {
-    states.transform *= getTransform();
+    const auto originalTransform = states.transform *= getTransform();
 
     for (int depth = static_cast<int>(renderers.size()) - 1; depth >= 0; --depth)
     {
@@ -61,12 +61,13 @@ void WorldRenderer::draw(sf::RenderTarget &target, sf::RenderStates states) cons
 
         const auto scaleFactor = 1.0f / static_cast<float>(depth * 0.02f + 1);
 
-        sf::RenderStates rs;
-        rs.transform.translate(cameraPosition);
-        rs.transform.scale(scaleFactor, scaleFactor);
-        rs.transform.translate(-cameraPosition);
+        sf::Transform transform;
+        transform.translate(cameraPosition);
+        transform.scale(scaleFactor, scaleFactor);
+        transform.translate(-cameraPosition);
+        states.transform = originalTransform * transform;
 
-        target.draw(renderer, rs);
+        target.draw(renderer, states);
     }
 
     //target.draw(tankSprite);
