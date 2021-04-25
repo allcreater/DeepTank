@@ -156,6 +156,7 @@
     </ClCompile>
     <ClCompile Include="TextureAtlas.cpp" />
     <ClCompile Include="World.cpp" />
+    <ClCompile Include="WorldGenerator.cpp" />
     <ClCompile Include="WorldRenderer.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -163,6 +164,7 @@
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="TextureAtlas.h" />
     <ClInclude Include="Tile.h" />
+    <ClInclude Include="WorldGenerator.h" />
     <ClInclude Include="WorldRenderer.h" />
     <ClInclude Include="World.h" />
   </ItemGroup>

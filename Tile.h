@@ -16,4 +16,10 @@ struct TileClass
 struct Tile
 {
     int classId = 0;
+
+    const static Tile& Empty()
+    {
+        static Tile empty;
+        return empty;
+    }
 };

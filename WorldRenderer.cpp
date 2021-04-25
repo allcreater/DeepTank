@@ -3,16 +3,22 @@
 
 #include "World.h"
 
-void LayerRenderer::update(const LevelLayer &layer, TextureAtlas &tileAtlas)
+void LayerRenderer::update(bool force)
 {
-    const size_t bufferLength = layer.getSize().x * layer.getSize().y * 4;
-    vertexArray.resize(bufferLength);
+    if (!currentLayer || !textureAtlas)
+        return;
 
-    texture = &tileAtlas.texture;
+    if (!force && lastKnownRevision == currentLayer->getRevision())
+        return;
+
+    lastKnownRevision = currentLayer->getRevision();
+
+    const size_t bufferLength = currentLayer->getSize().x * currentLayer->getSize().y * 4;
+    vertexArray.resize(bufferLength);
     
     size_t baseVertexIndex = 0;
-    layer.visit([&](glm::ivec2 pos, const Tile &tile) {
-        const auto& region = tileAtlas.regions[tile.classId];
+    currentLayer->visit([&](glm::ivec2 pos, const Tile &tile) {
+        const auto& region = textureAtlas->regions[tile.classId];
         const auto bottom = region.top + region.height;
         const auto right = region.left + region.width;
 
@@ -35,19 +41,47 @@ void LayerRenderer::update(const LevelLayer &layer, TextureAtlas &tileAtlas)
 
 void LayerRenderer::draw(sf::RenderTarget &target, sf::RenderStates states) const
 {
-    states.texture = texture;
-    target.draw(vertexBuffer, states);
+    if (!currentLayer)
+        return;
 
+    states.texture = &textureAtlas->texture;
+    target.draw(vertexBuffer, states);
 }
 
 WorldRenderer::WorldRenderer(World &world, TextureAtlas &tilesAtlas) : world{world}, tilesAtlas{tilesAtlas}
 {
-    for (size_t i = 0; i < 16; ++i)
+}
+
+void WorldRenderer::setVisibleLayers(int _topLayer, int _numLayers)
+{
+    if (topLayer == _topLayer && numVisibleLayers == _numLayers)
+        return;
+
+    topLayer = _topLayer;
+    numVisibleLayers = _numLayers;
+
+    renderers.resize(_numLayers);
+
+    for (size_t layerIndex = topLayer; layerIndex < topLayer + numVisibleLayers; ++layerIndex)
     {
-        auto &renderer = renderers.emplace_back();
+        const auto *layer = world.getLayer(layerIndex);
+        if (!layer)
+            continue;
+
+        const auto i = layerIndex - topLayer;
+        auto &renderer = renderers[i];
         const uint8_t intensity = 255 / (i + 1);
         renderer.setBaseColor(sf::Color{intensity, intensity, intensity, 255});
-        renderer.update(*world.getLayer(i), tilesAtlas);
+        renderer.setAtlas(&tilesAtlas);
+        renderer.setLayer(layer);
+    }
+}
+
+void WorldRenderer::update()
+{
+    for (auto& renderer : renderers)
+    {
+        renderer.update();
     }
 }
 

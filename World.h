@@ -2,33 +2,40 @@
 
 #include "Tile.h"
 
-constexpr unsigned int map_width = 256;
-constexpr unsigned int map_depth = 16;
-
+class WorldGenerator;
 
 class LevelLayer
 {
 public:
-    explicit LevelLayer(int heightOffset);
+    explicit LevelLayer(glm::ivec2 horizontalDimensions, int heightOffset);
 
+    int getDepth() const { return depth; }
     glm::ivec2 getSize() const { return size; }
-    std::span<const Tile> getData() const { return tiles; }
+    size_t getRevision() const { return revision; }
 
-    Tile &getTile(glm::ivec2 pos) { return tiles[pos.y * size.x + pos.x]; }
-    const Tile &getTile(glm::ivec2 pos) const { return tiles[pos.y * size.x + pos.x]; }
+        //    std::span<const Tile> getData() const { return tiles; }
+
+    void beginIntialize(std::shared_ptr<WorldGenerator> generator);
+
+    Tile &getTile(glm::ivec2 pos);
+    const Tile &getTile(glm::ivec2 pos) const;
 
     void visit(const std::function<void(glm::ivec2, Tile &)> &visitor);
     void visit(const std::function<void(glm::ivec2, const Tile &)> &visitor) const;
 
 private:
-    int heightOffset = 0;
-    glm::ivec2 size {map_width, map_width};
-    std::vector<Tile> tiles;
-};
+    Tile &getTileUnsafe(glm::ivec2 pos);
+    const Tile &getTileUnsafe(glm::ivec2 pos)const;
 
-class WorldGenerator
-{
-    
+private:
+    int depth = 0;
+    glm::ivec2 size;
+
+    size_t revision = 0;
+
+    std::vector<Tile> tiles;
+    std::future<void> loadTask;
+    mutable std::recursive_mutex tilesMutex;
 };
 
 class World
@@ -36,23 +43,21 @@ class World
 public:
     explicit World();
 
-    LevelLayer *getLayer(int depth)
-    {
-        const int index = depth - firstLayerDepth;
-        if (index < 0 || index >= layers.size())
-            return nullptr;
+    LevelLayer *getLayer(int depth);
 
-        return &layers[index];
-    }
+    void Update(float dt);
 
+    void setGenerator(std::shared_ptr<WorldGenerator> _generator) { generator = std::move(_generator); }
     std::span<const TileClass> getClasses() const { return tileClasses; }
 
 private:
-    std::mt19937 random;
+    std::shared_ptr<WorldGenerator> generator;
 
+    size_t maxLoadedLayers = 32;
     int firstLayerDepth = 0;
     std::deque<LevelLayer> layers;
 
     std::vector<TileClass> tileClasses;
+
 };
 

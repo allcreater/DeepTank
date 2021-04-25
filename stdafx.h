@@ -1,5 +1,6 @@
 #include <glm/glm.hpp>
 
+#include <cassert>
 #include <deque>
 #include <functional>
 #include <future>
@@ -14,8 +15,6 @@
 #include <unordered_map>
 #include <variant>
 #include <vector>
-
-#include <glm/glm.hpp>
 
 // overloaded
 template<class... Ts> struct overloaded : Ts... { using Ts::operator()...; };

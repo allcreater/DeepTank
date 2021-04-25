@@ -9,6 +9,8 @@
 
 #include <chrono>
 
+#include "WorldGenerator.h"
+
 class App
 {
 public:
@@ -68,6 +70,13 @@ private:
     {
         using namespace sf::Utils;
         std::visit(overloaded{
+            [&](KeyPressed key)
+            {
+              if (key.code == sf::Keyboard::E)
+                  visibleLayer++;
+              else if (key.code == sf::Keyboard::Q)
+                  visibleLayer--;
+            },
             [](auto){}
                    }, event);
     }
@@ -83,6 +92,8 @@ private:
         tankSprite.setPosition(128, 128);
 
         world = std::make_unique<World>();
+        world->setGenerator(std::make_unique<WorldGenerator>(glm::uvec2{256, 256}));
+
         worldRenderer = std::make_unique<WorldRenderer>(*world, tilesAtlas);
     }
 
@@ -103,7 +114,12 @@ private:
                       {static_cast<float>(window.getSize().x), static_cast<float>(window.getSize().y)}};
         window.setView(view);
 
+
+        world->Update(dt);
+
         worldRenderer->setCameraPosition(cameraPosition);
+        worldRenderer->setVisibleLayers(visibleLayer, 16);
+        worldRenderer->update();
     }
 
     void Render()
@@ -127,6 +143,7 @@ private:
 
     std::unique_ptr<WorldRenderer> worldRenderer;
     sf::Vector2f cameraPosition = {128, 128};
+    int visibleLayer = 0;
 };
 
 int main()
