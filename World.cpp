@@ -39,6 +39,8 @@ World::World()
 
 
     noise::module::Perlin noise;
+    noise::module::RidgedMulti rmf;
+    rmf.SetFrequency(0.2);
 
     // world generation
     for (size_t h = 0; h < map_depth; ++h)
@@ -48,7 +50,7 @@ World::World()
         currentLayer.visit([&,this](glm::ivec2 pos, Tile & tile) {
             //std::uniform_int_distribution<int> distr_tileClass{0, 5};
 
-            auto val = noise.GetValue(pos.x * 0.1, pos.y * 0.1, static_cast<double>(h) * 0.1);
+            auto val = rmf.GetValue(pos.x * 0.1, pos.y * 0.1, static_cast<double>(h) * 0.5);
 
             tile.classId = 0;
             if (val < -0.3)

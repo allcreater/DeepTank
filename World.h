@@ -26,6 +26,11 @@ private:
     std::vector<Tile> tiles;
 };
 
+class WorldGenerator
+{
+    
+};
+
 class World
 {
 public:

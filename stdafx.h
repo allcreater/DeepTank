@@ -2,6 +2,8 @@
 
 #include <deque>
 #include <functional>
+#include <future>
+#include <mutex>
 #include <optional>
 #include <random>
 #include <ranges>

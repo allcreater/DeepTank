@@ -42,7 +42,7 @@ void LayerRenderer::draw(sf::RenderTarget &target, sf::RenderStates states) cons
 
 WorldRenderer::WorldRenderer(World &world, TextureAtlas &tilesAtlas) : world{world}, tilesAtlas{tilesAtlas}
 {
-    for (size_t i = 0; i < 5; ++i)
+    for (size_t i = 0; i < 16; ++i)
     {
         auto &renderer = renderers.emplace_back();
         const uint8_t intensity = 255 / (i + 1);
