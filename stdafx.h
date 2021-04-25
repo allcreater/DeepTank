@@ -1,9 +1,11 @@
 #include <glm/glm.hpp>
 
+#include <algorithm>
 #include <cassert>
 #include <deque>
 #include <functional>
 #include <future>
+#include <list>
 #include <mutex>
 #include <optional>
 #include <random>

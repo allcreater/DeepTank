@@ -6,6 +6,7 @@
 #include "SfmlEventHelper.h"
 #include "WorldRenderer.h"
 #include "World.h"
+#include "Actor.h"
 
 #include <chrono>
 
@@ -87,12 +88,15 @@ private:
 
         loadTextureOrThrow(tankTexture, "Resources/tank.png");
 
-        tankSprite.setTexture(tankTexture);
-        tankSprite.setScale(1 / 16.0, 1 / 16.0);
-        tankSprite.setPosition(128, 128);
-
         world = std::make_unique<World>();
         world->setGenerator(std::make_unique<WorldGenerator>(glm::uvec2{256, 256}));
+
+        
+        auto tankActor = std::make_unique<Character>();
+        tankActor->setTexture(tankTexture);
+        tankActor->setPosition({128, 128, 0.0});
+
+        playerActor = &world->addActor(std::move(tankActor));
 
         worldRenderer = std::make_unique<WorldRenderer>(*world, tilesAtlas);
     }
@@ -118,6 +122,7 @@ private:
         world->Update(dt);
 
         worldRenderer->setCameraPosition(cameraPosition);
+        worldRenderer->setScale(8.0, 8.0);
         worldRenderer->setVisibleLayers(visibleLayer, 16);
         worldRenderer->update();
     }
@@ -137,13 +142,13 @@ private:
     TextureAtlas tilesAtlas;
     sf::Texture tankTexture;
 
-    sf::Sprite tankSprite;
-
     std::unique_ptr<World> world;
 
     std::unique_ptr<WorldRenderer> worldRenderer;
     sf::Vector2f cameraPosition = {128, 128};
     int visibleLayer = 0;
+
+    Actor *playerActor = nullptr;
 };
 
 int main()

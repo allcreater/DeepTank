@@ -2,6 +2,7 @@
 
 #include "Tile.h"
 
+class Actor;
 class WorldGenerator;
 
 class LevelLayer
@@ -12,6 +13,7 @@ public:
     int getDepth() const { return depth; }
     glm::ivec2 getSize() const { return size; }
     size_t getRevision() const { return revision; }
+    const bool isLoaded() const { return !tiles.empty(); }
 
         //    std::span<const Tile> getData() const { return tiles; }
 
@@ -41,9 +43,28 @@ private:
 class World
 {
 public:
+    enum class CellType
+    {
+        Unloaded,
+        Empty,
+        Floor,
+        Wall,
+        Ramp
+    };
+
+    using ActorsList = std::list<std::unique_ptr<Actor>>;
+
+public:
     explicit World();
+    ~World();
 
     LevelLayer *getLayer(int depth);
+    const LevelLayer *getLayer(int depth) const ;
+    CellType categorizeTile(glm::ivec3 point) const;
+
+    Actor &addActor(std::unique_ptr<Actor> actor);
+    const ActorsList &getActors() const { return actors; }
+    
 
     void Update(float dt);
 
@@ -55,9 +76,9 @@ private:
 
     size_t maxLoadedLayers = 32;
     int firstLayerDepth = 0;
+
     std::deque<LevelLayer> layers;
-
     std::vector<TileClass> tileClasses;
-
+    ActorsList actors;
 };
 

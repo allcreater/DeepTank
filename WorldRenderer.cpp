@@ -1,6 +1,6 @@
 #include "stdafx.h"
 #include "WorldRenderer.h"
-
+#include "Actor.h"
 #include "World.h"
 
 void LayerRenderer::update(bool force)
@@ -22,9 +22,7 @@ void LayerRenderer::update(bool force)
         const auto bottom = region.top + region.height;
         const auto right = region.left + region.width;
 
-        //const glm::vec2 lt = glm::vec2{pos} - 3.0f / 12, bd = glm::vec2{pos} + 15.0f / 12;
-        pos *= 8;
-        const glm::vec2 lt = glm::vec2{pos} - 6.0f, bd = glm::vec2{pos} + 6.0f;
+        const glm::vec2 lt = glm::vec2{pos} - 6.0f/8, bd = glm::vec2{pos} + 6.0f / 8;
 
         vertexArray[baseVertexIndex+0] = sf::Vertex{{lt.x, lt.y}, baseColor, sf::Vector2f{region.left, region.top}};
         vertexArray[baseVertexIndex+1] = sf::Vertex{{bd.x, lt.y}, baseColor, sf::Vector2f{right, region.top}};
@@ -99,10 +97,14 @@ void WorldRenderer::draw(sf::RenderTarget &target, sf::RenderStates states) cons
         transform.translate(cameraPosition);
         transform.scale(scaleFactor, scaleFactor);
         transform.translate(-cameraPosition);
-        states.transform = originalTransform * transform;
+        states.transform =  transform * originalTransform;
 
         target.draw(renderer, states);
     }
 
-    //target.draw(tankSprite);
+    for (const auto& actor : world.getActors())
+    {
+        if (actor->isAlive())
+            target.draw(*actor, states);
+    }
 }

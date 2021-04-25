@@ -20,7 +20,9 @@ void WorldGenerator::generateLevelLayer(LevelLayer& currentLayer)
         auto val = rmf.GetValue(pos.x * 0.1, pos.y * 0.1, depth);
 
         tile.classId = 0;
-        if (val < -0.3)
+        if (val < -0.6)
+            tile.classId = 5;
+        else if (val < -0.3)
             tile.classId = 3;
         else if (val < 0.4)
             tile.classId = 2;

@@ -1,5 +1,6 @@
 #include "stdafx.h"
 
+#include "Actor.h"
 #include "World.h"
 #include "WorldGenerator.h"
 
@@ -81,12 +82,16 @@ void LevelLayer::visit(const std::function<void(glm::ivec2, Tile &)>& visitor)
 
 World::World()
 {
-    tileClasses.emplace_back( "empty"s );
+    tileClasses.emplace_back( "empty"s, 0, false );
     tileClasses.emplace_back( "crystal"s );
     tileClasses.emplace_back( "ground"s );
     tileClasses.emplace_back( "rock"s );
     tileClasses.emplace_back( "cuprum_ore"s );
     tileClasses.emplace_back( "gold_ore"s );
+}
+
+World::~World()
+{
 }
 
 LevelLayer *World::getLayer(int depth)
@@ -96,6 +101,39 @@ LevelLayer *World::getLayer(int depth)
         return nullptr;
 
     return &layers[index];
+}
+
+const LevelLayer * World::getLayer(int depth) const
+{
+    return const_cast<World *>(this)->getLayer(depth);
+}
+
+World::CellType World::categorizeTile(glm::ivec3 point) const
+{
+    const auto *wallLayer = getLayer(point.z);
+    if (!wallLayer || !wallLayer->isLoaded())
+        return CellType::Unloaded;
+
+    const auto horizontalPoint = glm::ivec2{point.x, point.y};
+    const auto& wallClass = getClasses()[wallLayer->getTile(horizontalPoint).classId];
+    if (wallClass.isSolid)
+        return World::CellType::Wall;
+
+    const auto *floorLayer = getLayer(point.z + 1);
+    if (!floorLayer || !floorLayer->isLoaded())
+        return CellType::Unloaded;
+
+    const auto &floorClass = getClasses()[wallLayer->getTile(horizontalPoint).classId];
+    if (floorClass.isSolid)
+        return CellType::Floor;
+
+    return CellType::Empty;
+}
+
+Actor & World::addActor(std::unique_ptr<Actor> actor)
+{
+    actors.push_back(std::move(actor));
+    return *actors.back();
 }
 
 void World::Update(float dt)
@@ -109,4 +147,10 @@ void World::Update(float dt)
         auto& newLayer = layers.emplace_back(generator->getLayerDimensions(), firstLayerDepth + i);
         newLayer.beginIntialize(generator);
     }
+
+    for (auto& actor : actors)
+        actor->update(dt, *this);
+
+    std::ranges::remove_if(actors, [](const std::unique_ptr<Actor> &actor) { return actor->isAlive(); });
+
 }

@@ -11,6 +11,7 @@ struct TileClass
 {
     std::string name;
     int16_t initialStrength = 1;
+    bool isSolid = true;
 };
 
 struct Tile
