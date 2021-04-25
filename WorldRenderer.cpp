@@ -27,16 +27,47 @@ void LayerRenderer::update(const LevelLayer &layer, TextureAtlas &tileAtlas)
 
         baseVertexIndex += 4;
     });
+
+    if (vertexBuffer.getVertexCount() != vertexArray.getVertexCount())
+        vertexBuffer.create(vertexArray.getVertexCount());
+    vertexBuffer.update(&vertexArray[0], vertexArray.getVertexCount(), 0);
 }
 
 void LayerRenderer::draw(sf::RenderTarget &target, sf::RenderStates states) const
 {
     states.texture = texture;
-    target.draw(vertexArray, states);
+    target.draw(vertexBuffer, states);
+
+}
+
+WorldRenderer::WorldRenderer(World &world, TextureAtlas &tilesAtlas) : world{world}, tilesAtlas{tilesAtlas}
+{
+    for (size_t i = 0; i < 5; ++i)
+    {
+        auto &renderer = renderers.emplace_back();
+        const uint8_t intensity = 255 / (i + 1);
+        renderer.setBaseColor(sf::Color{intensity, intensity, intensity, 255});
+        renderer.update(*world.getLayer(i), tilesAtlas);
+    }
 }
 
 void WorldRenderer::draw(sf::RenderTarget &target, sf::RenderStates states) const
 {
     states.transform *= getTransform();
 
+    for (int depth = static_cast<int>(renderers.size()) - 1; depth >= 0; --depth)
+    {
+        auto &renderer = renderers[depth];
+
+        const auto scaleFactor = 1.0f / static_cast<float>(depth * 0.02f + 1);
+
+        sf::RenderStates rs;
+        rs.transform.translate(cameraPosition);
+        rs.transform.scale(scaleFactor, scaleFactor);
+        rs.transform.translate(-cameraPosition);
+
+        target.draw(renderer, rs);
+    }
+
+    //target.draw(tankSprite);
 }

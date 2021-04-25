@@ -17,11 +17,12 @@ public:
 
     void Run()
     {
-        window.create(sf::VideoMode(1280, 800), "Deep Tank");
+        window.create(sf::VideoMode(1280, 800), "");
 
         Init();
 
-        sf::Clock clock;
+        sf::Clock frameClock, performanceCounterClock;
+        size_t fps = 0;
         while (window.isOpen())
         {
             // Process events
@@ -33,10 +34,20 @@ public:
                     OnWindowEvent(sf::Utils::MakeTypeSafeEvent(event));
             }
 
-            Update(clock.getElapsedTime().asSeconds());
+            Update(frameClock.getElapsedTime().asSeconds());
             Render();
 
-            clock.restart();
+            frameClock.restart();
+
+            if (performanceCounterClock.getElapsedTime().asSeconds() >= 1.0f)
+            {
+                window.setTitle("Deep Tank "s + std::to_string(fps) + " fps");
+
+                fps = 0;
+                performanceCounterClock.restart();
+            }
+            else
+                fps++;
         }
     }
 
@@ -66,14 +77,7 @@ private:
         tankSprite.setPosition(128, 128);
 
         world = std::make_unique<World>();
-
-        for (size_t i = 0; i < 5; ++i)
-        {
-            auto &renderer = renderers.emplace_back();
-            const uint8_t intensity = 255 / (i + 1);
-            renderer.setBaseColor(sf::Color{intensity, intensity, intensity, 255});
-            renderer.update(*world->getLayer(i), tilesAtlas);
-        }
+        worldRenderer = std::make_unique<WorldRenderer>(*world, tilesAtlas);
     }
 
     void Update(float dt)
@@ -92,6 +96,8 @@ private:
         sf::View view{{cameraPosition.x, cameraPosition.y},
                       {static_cast<float>(window.getSize().x), static_cast<float>(window.getSize().y)}};
         window.setView(view);
+
+        worldRenderer->setCameraPosition(cameraPosition);
     }
 
     void Render()
@@ -99,22 +105,7 @@ private:
         // Clear screen
         window.clear(sf::Color::Magenta);
 
-        for (int depth = static_cast<int>(renderers.size()) - 1; depth >= 0; --depth)
-        {
-            auto &renderer = renderers[depth];
-
-            const auto scaleFactor = 1.0f / static_cast<float>(depth * 0.02f + 1);
-
-            sf::RenderStates rs;
-            rs.transform.translate(cameraPosition);
-            rs.transform.scale(scaleFactor, scaleFactor);
-            rs.transform.translate(-cameraPosition);
-
-            window.draw(renderer, rs);
-
-        }
-
-        window.draw(tankSprite);
+        window.draw(*worldRenderer);
 
         window.display();
     }
@@ -127,8 +118,8 @@ private:
     sf::Sprite tankSprite;
 
     std::unique_ptr<World> world;
-    std::vector<LayerRenderer> renderers;
 
+    std::unique_ptr<WorldRenderer> worldRenderer;
     sf::Vector2f cameraPosition = {128, 128};
 };
 
