@@ -48,7 +48,7 @@ World::World()
         currentLayer.visit([&,this](glm::ivec2 pos, Tile & tile) {
             //std::uniform_int_distribution<int> distr_tileClass{0, 5};
 
-            auto val = noise.GetValue(pos.x * 0.1 + 1.25, pos.y * 0.1 + 0.75, static_cast<double>(h) * 0.1 + 0.50);
+            auto val = noise.GetValue(pos.x * 0.1, pos.y * 0.1, static_cast<double>(h) * 0.1);
 
             tile.classId = 0;
             if (val < -0.3)

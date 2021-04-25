@@ -3,7 +3,7 @@
 #include <SFML/Audio.hpp>
 #include <SFML/Graphics.hpp>
 
-
+#include "SfmlEventHelper.h"
 #include "WorldRenderer.h"
 #include "World.h"
 
@@ -29,6 +29,8 @@ public:
             {
                 if (event.type == sf::Event::Closed)
                     window.close();
+                else
+                    OnWindowEvent(sf::Utils::MakeTypeSafeEvent(event));
             }
 
             Update(clock.getElapsedTime().asSeconds());
@@ -43,6 +45,21 @@ private:
     {
         if (!texture.loadFromFile(name))
             throw std::runtime_error{"texture "s + name + " can't be loaded"s};
+    }
+
+    void OnWindowEvent(sf::Utils::SfmlEvent event)
+    {
+        using namespace sf::Utils;
+        std::visit(overloaded{
+            [this](ResizedEvent event)
+            {
+                  sf::View view{
+                      {128, 128},
+                      {static_cast<float>(event.width), static_cast<float>(event.height)}};
+                  window.setView(view);
+            },
+            [](auto){}
+                   }, event);
     }
 
     void Init()
@@ -66,11 +83,6 @@ private:
 
     void Update(float dt)
     {
-        const auto aspectRatio = static_cast<float>(window.getSize().y) / window.getSize().x;
-
-        const float range = 64;
-        sf::View view{{128, 128}, {range, range * aspectRatio}};
-        window.setView(view);
     }
 
     void Render()

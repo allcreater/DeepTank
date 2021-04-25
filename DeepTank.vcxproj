@@ -158,6 +158,7 @@
     <ClCompile Include="WorldRenderer.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="SfmlEventHelper.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="Tile.h" />
     <ClInclude Include="WorldRenderer.h" />

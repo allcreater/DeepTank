@@ -57,7 +57,9 @@ void LayerRenderer::update(const LevelLayer &layer, TextureAtlas &tileAtlas)
         const auto bottom = region.top + region.height;
         const auto right = region.left + region.width;
 
-        const glm::vec2 lt = glm::vec2{pos} - 3.0f / 12, bd = glm::vec2{pos} + 15.0f / 12;
+        //const glm::vec2 lt = glm::vec2{pos} - 3.0f / 12, bd = glm::vec2{pos} + 15.0f / 12;
+        pos *= 8;
+        const glm::vec2 lt = glm::vec2{pos} - 6.0f, bd = glm::vec2{pos} + 6.0f;
 
         vertexArray.append(sf::Vertex{{lt.x, lt.y}, sf::Vector2f{region.left, region.top}});
         vertexArray.append(sf::Vertex{{bd.x, lt.y}, sf::Vector2f{right, region.top}});
