@@ -67,7 +67,7 @@ private:
 
         world = std::make_unique<World>();
 
-        for (size_t i = 0; i < 3; ++i)
+        for (size_t i = 0; i < 5; ++i)
         {
             auto &renderer = renderers.emplace_back();
             const uint8_t intensity = 255 / (i + 1);
@@ -99,14 +99,19 @@ private:
         // Clear screen
         window.clear(sf::Color::Magenta);
 
-        sf::RenderStates states;
-        for (const auto &renderer : renderers | std::views::reverse)
+        for (int depth = static_cast<int>(renderers.size()) - 1; depth >= 0; --depth)
         {
-            window.draw(renderer, states);
+            auto &renderer = renderers[depth];
 
-            states.transform.translate(cameraPosition);
-            states.transform.scale(1.1, 1.1);
-            states.transform.translate(-cameraPosition);
+            const auto scaleFactor = 1.0f / static_cast<float>(depth * 0.02f + 1);
+
+            sf::RenderStates rs;
+            rs.transform.translate(cameraPosition);
+            rs.transform.scale(scaleFactor, scaleFactor);
+            rs.transform.translate(-cameraPosition);
+
+            window.draw(renderer, rs);
+
         }
 
         window.draw(tankSprite);

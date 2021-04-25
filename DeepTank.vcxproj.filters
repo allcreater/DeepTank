@@ -16,6 +16,12 @@
     <Filter Include="Misc">
       <UniqueIdentifier>{ee86034d-4857-4e82-b3cf-4419e5fb8fd1}</UniqueIdentifier>
     </Filter>
+    <Filter Include="Header Files\Utils">
+      <UniqueIdentifier>{597bca93-bf93-40ce-95bf-748ca8d9ed1d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files\Utils">
+      <UniqueIdentifier>{9db2a5c8-31ed-4bfd-9dd3-422ba20f8e63}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp">
@@ -29,6 +35,9 @@
     </ClCompile>
     <ClCompile Include="WorldRenderer.cpp">
       <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="TextureAtlas.cpp">
+      <Filter>Source Files\Utils</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -45,7 +54,10 @@
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="SfmlEventHelper.h">
-      <Filter>Header Files</Filter>
+      <Filter>Header Files\Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="TextureAtlas.h">
+      <Filter>Header Files\Utils</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
