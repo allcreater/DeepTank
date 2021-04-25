@@ -8,21 +8,11 @@ class LevelLayer;
 class LayerRenderer final : public sf::Drawable
 {
 public:
-    void setLayer(const LevelLayer *layer)
-    {
-        currentLayer = layer;
-        lastKnownRevision = -1;
-    }
-    void setAtlas(const TextureAtlas *atlas)
-    {
-        textureAtlas = atlas;
-        lastKnownRevision = -1;
-    }
-    void setBaseColor(sf::Color color)
-    {
-        baseColor = color;
-        lastKnownRevision = -1;
-    }
+    void setLayer(const LevelLayer *layer);
+
+    void setAtlas(const TextureAtlas *atlas);
+
+    void setBaseColor(sf::Color color);
     void update(bool force = false);
 
     void draw(sf::RenderTarget &target, sf::RenderStates states) const override;

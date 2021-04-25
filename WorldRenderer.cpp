@@ -3,12 +3,39 @@
 #include "Actor.h"
 #include "World.h"
 
+void LayerRenderer::setLayer(const LevelLayer *layer)
+{
+    if (currentLayer == layer)
+        return;
+
+    currentLayer = layer;
+    lastKnownRevision = -1;
+}
+
+void LayerRenderer::setAtlas(const TextureAtlas *atlas)
+{
+    if (textureAtlas == atlas)
+        return;
+
+    textureAtlas = atlas;
+    lastKnownRevision = -1;
+}
+
+void LayerRenderer::setBaseColor(sf::Color color)
+{
+    if (baseColor == color)
+        return;
+
+    baseColor = color;
+    lastKnownRevision = -1;
+}
+
 void LayerRenderer::update(bool force)
 {
     if (!currentLayer || !textureAtlas)
         return;
 
-    if (!force && lastKnownRevision == currentLayer->getRevision())
+    if (!force && lastKnownRevision == currentLayer->getRevision() && lastKnownRevision != -1)
         return;
 
     lastKnownRevision = currentLayer->getRevision();
@@ -52,9 +79,6 @@ WorldRenderer::WorldRenderer(World &world, TextureAtlas &tilesAtlas) : world{wor
 
 void WorldRenderer::setVisibleLayers(int _topLayer, int _numLayers)
 {
-    if (topLayer == _topLayer && numVisibleLayers == _numLayers)
-        return;
-
     topLayer = _topLayer;
     numVisibleLayers = _numLayers;
 

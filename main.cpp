@@ -89,7 +89,7 @@ private:
         loadTextureOrThrow(tankTexture, "Resources/tank.png");
 
         world = std::make_unique<World>();
-        world->setGenerator(std::make_unique<WorldGenerator>(glm::uvec2{256, 256}));
+        world->setGenerator(std::make_shared<WorldGenerator>(glm::uvec2{256, 256}));
 
         
         auto tankActor = std::make_unique<Character>();

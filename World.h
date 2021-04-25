@@ -8,6 +8,7 @@ class WorldGenerator;
 class LevelLayer
 {
 public:
+    LevelLayer() { std::puts("hello"); } // почему-то используется при создании future, придётся пока оставить
     explicit LevelLayer(glm::ivec2 horizontalDimensions, int heightOffset);
 
     int getDepth() const { return depth; }
@@ -17,7 +18,7 @@ public:
 
         //    std::span<const Tile> getData() const { return tiles; }
 
-    void beginIntialize(std::shared_ptr<WorldGenerator> generator);
+    std::future<void> beginIntialize(std::shared_ptr<WorldGenerator> generator);
 
     Tile &getTile(glm::ivec2 pos);
     const Tile &getTile(glm::ivec2 pos) const;
@@ -27,9 +28,13 @@ public:
     void visit(const std::function<void(glm::ivec2, Tile &)> &visitor, glm::ivec2 from, glm::ivec2 to);
     void visit(const std::function<void(glm::ivec2, const Tile &)> &visitor, glm::ivec2 from, glm::ivec2 to) const;
 
+    void setData(std::vector<Tile> &&data);
+
 private:
     Tile &getTileUnsafe(glm::ivec2 pos);
     const Tile &getTileUnsafe(glm::ivec2 pos)const;
+
+    void swap(LevelLayer &other);
 
 private:
     int depth = 0;
@@ -38,8 +43,6 @@ private:
     size_t revision = 0;
 
     std::vector<Tile> tiles;
-    std::future<void> loadTask;
-    mutable std::recursive_mutex tilesMutex;
 };
 
 class World
@@ -74,12 +77,15 @@ public:
     std::span<const TileClass> getClasses() const { return tileClasses; }
 
 private:
+    struct UnavailableLevel{};
+    using Layer = std::variant<LevelLayer, std::future<LevelLayer>, UnavailableLevel>;
+
     std::shared_ptr<WorldGenerator> generator;
 
     size_t maxLoadedLayers = 32;
     int firstLayerDepth = 0;
 
-    std::deque<LevelLayer> layers;
+    std::vector<Layer> layers;
     std::vector<TileClass> tileClasses;
     ActorsList actors;
 };

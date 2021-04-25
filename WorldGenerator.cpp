@@ -28,3 +28,15 @@ void WorldGenerator::generateLevelLayer(LevelLayer& currentLayer)
             tile.classId = 2;
     });
 }
+
+std::future<LevelLayer> WorldGenerator::generateLevelLayerAsync(int depth)
+{
+    return std::async(std::launch::async, [generator = shared_from_this(), depth]() mutable {
+        LevelLayer replacementLayer{generator->horizontalDimensions, depth};
+        replacementLayer.setData(std::vector<Tile>{generator->horizontalDimensions.x * generator->horizontalDimensions.y});
+
+        generator->generateLevelLayer(replacementLayer);
+
+        return replacementLayer;
+    });
+}
