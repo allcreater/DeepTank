@@ -51,13 +51,6 @@ private:
     {
         using namespace sf::Utils;
         std::visit(overloaded{
-            [this](ResizedEvent event)
-            {
-                  sf::View view{
-                      {128, 128},
-                      {static_cast<float>(event.width), static_cast<float>(event.height)}};
-                  window.setView(view);
-            },
             [](auto){}
                    }, event);
     }
@@ -74,15 +67,31 @@ private:
 
         world = std::make_unique<World>();
 
-        for (size_t i = 3; i > 0; --i)
+        for (size_t i = 0; i < 3; ++i)
         {
             auto &renderer = renderers.emplace_back();
+            const uint8_t intensity = 255 / (i + 1);
+            renderer.setBaseColor(sf::Color{intensity, intensity, intensity, 255});
             renderer.update(*world->getLayer(i), tilesAtlas);
         }
     }
 
     void Update(float dt)
     {
+        const auto cameraSpeed = 1;
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::W))
+            cameraPosition.y -= cameraSpeed;
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::S))
+            cameraPosition.y += cameraSpeed;
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::A))
+            cameraPosition.x -= cameraSpeed;
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::D))
+            cameraPosition.x += cameraSpeed;
+
+
+        sf::View view{{cameraPosition.x, cameraPosition.y},
+                      {static_cast<float>(window.getSize().x), static_cast<float>(window.getSize().y)}};
+        window.setView(view);
     }
 
     void Render()
@@ -91,10 +100,13 @@ private:
         window.clear(sf::Color::Magenta);
 
         sf::RenderStates states;
-        for (const auto &renderer : renderers)
+        for (const auto &renderer : renderers | std::views::reverse)
         {
-            //states.transform.scale(1.1, 1.1);
-            window.draw(renderer);
+            window.draw(renderer, states);
+
+            states.transform.translate(cameraPosition);
+            states.transform.scale(1.1, 1.1);
+            states.transform.translate(-cameraPosition);
         }
 
         window.draw(tankSprite);
@@ -111,6 +123,8 @@ private:
 
     std::unique_ptr<World> world;
     std::vector<LayerRenderer> renderers;
+
+    sf::Vector2f cameraPosition = {128, 128};
 };
 
 int main()

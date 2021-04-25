@@ -47,11 +47,11 @@ TextureAtlas TextureAtlas::MakeFromRegularGrid(const std::string &textureName, g
 void LayerRenderer::update(const LevelLayer &layer, TextureAtlas &tileAtlas)
 {
     const size_t bufferLength = layer.getSize().x * layer.getSize().y * 4;
+    vertexArray.resize(bufferLength);
 
     texture = &tileAtlas.texture;
 
-    vertexArray.resize(0);
-
+    size_t baseVertexIndex = 0;
     layer.visit([&](glm::ivec2 pos, const Tile &tile) {
         const auto& region = tileAtlas.regions[tile.classId];
         const auto bottom = region.top + region.height;
@@ -61,10 +61,12 @@ void LayerRenderer::update(const LevelLayer &layer, TextureAtlas &tileAtlas)
         pos *= 8;
         const glm::vec2 lt = glm::vec2{pos} - 6.0f, bd = glm::vec2{pos} + 6.0f;
 
-        vertexArray.append(sf::Vertex{{lt.x, lt.y}, sf::Vector2f{region.left, region.top}});
-        vertexArray.append(sf::Vertex{{bd.x, lt.y}, sf::Vector2f{right, region.top}});
-        vertexArray.append(sf::Vertex{{bd.x, bd.y}, sf::Vector2f{right,bottom}});
-        vertexArray.append(sf::Vertex{{lt.x, bd.y}, sf::Vector2f{region.left, bottom}});
+        vertexArray[baseVertexIndex+0] = sf::Vertex{{lt.x, lt.y}, baseColor, sf::Vector2f{region.left, region.top}};
+        vertexArray[baseVertexIndex+1] = sf::Vertex{{bd.x, lt.y}, baseColor, sf::Vector2f{right, region.top}};
+        vertexArray[baseVertexIndex+2] = sf::Vertex{{bd.x, bd.y}, baseColor, sf::Vector2f{right,bottom}};
+        vertexArray[baseVertexIndex+3] = sf::Vertex{{lt.x, bd.y}, baseColor, sf::Vector2f{region.left, bottom}};
+
+        baseVertexIndex += 4;
     });
 }
 
