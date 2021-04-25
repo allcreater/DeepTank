@@ -56,25 +56,38 @@ const Tile &LevelLayer::getTile(glm::ivec2 pos) const
     return Tile::Empty();
 }
 
-void LevelLayer::visit(const std::function<void(glm::ivec2, const Tile &)>& visitor) const
+void LevelLayer::visit(const std::function<void(glm::ivec2, Tile &)> &visitor)
 {
+    visit(visitor, {0, 0}, size);
+}
+
+void LevelLayer::visit(const std::function<void(glm::ivec2, const Tile &)> &visitor) const
+{
+    visit(visitor, {0, 0}, size);
+}
+
+void LevelLayer::visit(const std::function<void(glm::ivec2, const Tile &)> &visitor, glm::ivec2 from,
+                       glm::ivec2 to) const
+{
+    from = max({0, 0}, from);
+    to = min(size, to);
+
     std::lock_guard tilesLock{tilesMutex};
-    using scalar = decltype(size)::value_type;
-    for (scalar y = 0; y < size.y; ++y)
-    for (scalar x = 0; x < size.x; ++x)
+    for (auto y = from.y; y < to.y; ++y)
+    for (auto x = from.x; x < to.x; ++x)
     {
         visitor({x, y}, getTileUnsafe({x, y}));
     }
 }
 
-void LevelLayer::visit(const std::function<void(glm::ivec2, Tile &)>& visitor)
+void LevelLayer::visit(const std::function<void(glm::ivec2, Tile &)> &visitor, glm::ivec2 from, glm::ivec2 to)
 {
-    std::lock_guard tilesLock{tilesMutex};
-    revision++;
+    from = max({0, 0}, from);
+    to = min(size, to);
 
-    using scalar = decltype(size)::value_type;
-    for (scalar y = 0; y < size.y; ++y)
-    for (scalar x = 0; x < size.x; ++x)
+    std::lock_guard tilesLock{tilesMutex};
+    for (auto y = from.y; y < to.y; ++y)
+    for (auto x = from.x; x < to.x; ++x)
     {
         visitor({x, y}, getTileUnsafe({x, y}));
     }
@@ -82,12 +95,12 @@ void LevelLayer::visit(const std::function<void(glm::ivec2, Tile &)>& visitor)
 
 World::World()
 {
-    tileClasses.emplace_back( "empty"s, 0, false );
-    tileClasses.emplace_back( "crystal"s );
-    tileClasses.emplace_back( "ground"s );
-    tileClasses.emplace_back( "rock"s );
-    tileClasses.emplace_back( "cuprum_ore"s );
-    tileClasses.emplace_back( "gold_ore"s );
+    tileClasses.emplace_back( 0, "crystal"s );
+    tileClasses.emplace_back( 1, "empty"s, 0, false );
+    tileClasses.emplace_back( 2, "ground"s );
+    tileClasses.emplace_back( 3, "rock"s );
+    tileClasses.emplace_back( 4, "cuprum_ore"s );
+    tileClasses.emplace_back( 5, "gold_ore"s );
 }
 
 World::~World()
@@ -151,6 +164,14 @@ void World::Update(float dt)
     for (auto& actor : actors)
         actor->update(dt, *this);
 
-    std::ranges::remove_if(actors, [](const std::unique_ptr<Actor> &actor) { return actor->isAlive(); });
+    auto tailRange = std::ranges::remove_if(actors, [](const std::unique_ptr<Actor> &actor)
+    {
+        return !actor->isAlive();
+    });
+
+    std::ranges::for_each(tailRange, [this](std::unique_ptr<Actor> &actor) {
+        actor->onDestroy(*this);
+    });
+    actors.erase(tailRange.begin(), tailRange.end());
 
 }

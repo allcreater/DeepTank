@@ -9,13 +9,14 @@ class Actor : public sf::Drawable //TODO: ActorRenderer
 public:
     virtual void update(float dt, World &world) = 0;
 
+    virtual void onDestroy(World &world) {}
+
     virtual bool isAlive() const = 0;
     virtual void setPosition(glm::vec3 position) = 0;
     virtual glm::vec3 getPosition() const = 0;
 
     virtual ~Actor() = default;
 
-protected:
     //virtual void draw(sf::RenderTarget &target, sf::RenderStates states) const override {}
 };
 

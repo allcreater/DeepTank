@@ -24,6 +24,8 @@ public:
 
     void visit(const std::function<void(glm::ivec2, Tile &)> &visitor);
     void visit(const std::function<void(glm::ivec2, const Tile &)> &visitor) const;
+    void visit(const std::function<void(glm::ivec2, Tile &)> &visitor, glm::ivec2 from, glm::ivec2 to);
+    void visit(const std::function<void(glm::ivec2, const Tile &)> &visitor, glm::ivec2 from, glm::ivec2 to) const;
 
 private:
     Tile &getTileUnsafe(glm::ivec2 pos);

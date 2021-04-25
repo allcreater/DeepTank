@@ -12,6 +12,9 @@ void Character::update(float dt, World &world)
     sprite.setPosition(position.x, position.y);
 
     const auto tileBeneath = world.categorizeTile(glm::ivec3{position});
+    if (tileBeneath == World::CellType::Unloaded)
+        return;
+
     if (tileBeneath != World::CellType::Floor)
         position.z += 1.0f * dt;
 
