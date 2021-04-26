@@ -128,6 +128,8 @@ private:
                   visibleLayer++;
               else if (key.code == sf::Keyboard::Q)
                   visibleLayer--;
+              else if (key.code == sf::Keyboard::F10)
+                StartNewGame();
             },
             [&](MouseButtonPressed button)
             {
@@ -149,6 +151,14 @@ private:
         loadTextureOrThrow(flameTexture, "Resources/effect_flame.png");
         loadTextureOrThrow(glowTexture, "Resources/effect_glow.png");
 
+        if (!font.loadFromFile("Resources/third-party/Freedom-nZ4J.otf"))
+            throw std::runtime_error{"font could'nt be loaded"s};
+
+        StartNewGame();
+    }
+
+    void StartNewGame()
+    {
         world = std::make_unique<World>();
         world->setGenerator(std::make_shared<WorldGenerator>(glm::uvec2{256, 256}));
 
@@ -198,7 +208,7 @@ private:
     void Update(float dt)
     {
         // player input
-        if (playerActor)
+        if (playerActor && playerActor->isAlive())
         {
             constexpr auto moveSpeed = 10.0f;
             constexpr auto rotateSpeed = 3.0f;
@@ -243,13 +253,13 @@ private:
 
             cameraPosition = worldRenderer->getTransform().transformPoint(playerActor->getPosition().x,
                                                                           playerActor->getPosition().y);
+            visibleLayer = playerActor->getPosition().z;
 
             playerActor->setVelocity(velocity);
         }
 
-        sf::View view{{cameraPosition.x, cameraPosition.y},
-                      {static_cast<float>(window.getSize().x), static_cast<float>(window.getSize().y)}};
-        window.setView(view);
+        if (!world)
+            return;
 
         world->Update(dt);
 
@@ -262,9 +272,26 @@ private:
     void Render()
     {
         // Clear screen
-        window.clear(sf::Color::Magenta);
+        window.clear(sf::Color::Black);
 
-        window.draw(*worldRenderer);
+        if (playerActor->isAlive())
+        {
+
+            sf::View view{{cameraPosition.x, cameraPosition.y},
+                          {static_cast<float>(window.getSize().x), static_cast<float>(window.getSize().y)}};
+            window.setView(view);
+
+            window.draw(*worldRenderer);
+        }
+        else
+        {
+            window.setView(window.getDefaultView());
+
+            sf::Text text{"Game over", font, 80};
+            sf::Vector2u position = window.getSize() / 2u - sf::Vector2u{static_cast<unsigned>(text.getGlobalBounds().width), static_cast<unsigned>(text.getGlobalBounds().height)} / 2u;
+            text.setPosition(position.x, position.y);
+            window.draw(text);
+        }
 
         window.display();
     }
@@ -275,6 +302,8 @@ private:
     sf::Texture tankTexture, tankTowerTexture, tankDrillTexture;
     sf::Texture baseTexture;
     sf::Texture flameTexture, glowTexture;
+
+    sf::Font font;
 
     std::unique_ptr<World> world;
 

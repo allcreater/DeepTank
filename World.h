@@ -76,6 +76,7 @@ public:
 private:
     void onLayerLoaded(const LevelLayer &layer);
     void callOnReadyForActor(const std::shared_ptr<Actor> &actor, const LevelLayer &layer);
+    void callOnDestroyForActor(const std::shared_ptr<Actor> &actor);
 
 private:
     struct UnavailableLevel{};

@@ -97,6 +97,8 @@ World::World()
 
 World::~World()
 {
+    //should be automatic
+    std::ranges::for_each(actors, std::bind_front(&World::callOnDestroyForActor, this));
 }
 
 LevelLayer *World::getLayer(int depth)
@@ -188,10 +190,7 @@ void World::Update(float dt)
     {
         bool isDying = !actor->isAlive();
         if (isDying) // crutch
-        {
-            actor->onDestroy(*this);
-            actor->setWorld(nullptr);
-        }
+            callOnDestroyForActor(actor);
         return isDying;
     });
 
@@ -209,4 +208,10 @@ void World::callOnReadyForActor(const std::shared_ptr<Actor> &actor, const Level
 {
     if (actor->getPosition().z == layer.getDepth())
         actor->onReady(*this);
+}
+
+void World::callOnDestroyForActor(const std::shared_ptr<Actor> &actor)
+{
+    actor->onDestroy(*this);
+    actor->setWorld(nullptr);
 }
