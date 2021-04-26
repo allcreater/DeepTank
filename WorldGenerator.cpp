@@ -40,3 +40,13 @@ std::future<LevelLayer> WorldGenerator::generateLevelLayerAsync(int depth)
         return replacementLayer;
     });
 }
+
+void FillRoundArea(LevelLayer &layer, glm::ivec2 center, int radius, Tile fillingTile)
+{
+    layer.visit([=](glm::ivec2 pos, Tile &tile)
+    {
+        if (auto dir = center - pos; sqrt(dir.x * dir.x + dir.y * dir.y) <= radius)
+            tile = fillingTile;
+
+    }, center - glm::ivec2{radius}, center + glm::ivec2{radius});
+}

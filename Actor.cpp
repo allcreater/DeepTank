@@ -2,6 +2,8 @@
 #include "Actor.h"
 #include "World.h"
 
+#include "WorldGenerator.h" // For drawing on level
+
 void Character::draw(sf::RenderTarget &target, sf::RenderStates states) const
 {
     target.draw(sprite, states);
@@ -37,10 +39,7 @@ void Tank::onReady(World &world)
     auto *layer = world.getLayer(getPosition().z);
     assert(layer);
 
-    glm::ivec2 intPos{getPosition()};
-    layer->visit([](glm::ivec2 pos, Tile &tile) {
-        tile = Tile::Empty();
-    }, intPos - glm::ivec2{getSize() * 4}, intPos + glm::ivec2{getSize() * 4});
+    FillRoundArea(*layer, getPositionOnLayer(), getSize() * 4);
 }
 
 void Tank::update(float dt, World &world)

@@ -115,7 +115,7 @@ void WorldRenderer::draw(sf::RenderTarget &target, sf::RenderStates states) cons
     {
         auto &renderer = renderers[depth];
 
-        const auto scaleFactor = 1.0f / static_cast<float>(depth * 0.02f + 1);
+        const auto scaleFactor = 1.0f / static_cast<float>((depth-1) * 0.05f + 1);
 
         sf::Transform transform;
         transform.translate(cameraPosition);
@@ -124,11 +124,19 @@ void WorldRenderer::draw(sf::RenderTarget &target, sf::RenderStates states) cons
         states.transform =  transform * originalTransform;
 
         target.draw(renderer, states);
-    }
 
-    for (const auto& actor : world.getActors())
-    {
-        if (actor->isAlive())
+        auto actorShouldBeRendered = [&renderer](const std::unique_ptr<Actor> &actor) {
+            return actor->isAlive() && renderer.getLayer() && renderer.getLayer()->getDepth() == static_cast<int>(actor->getPosition().z)+1;
+        };
+
+        for (const auto &actor : world.getActors() | std::ranges::views::filter(actorShouldBeRendered))
             target.draw(*actor, states);
     }
+
+    //states.transform = originalTransform;
+    //for (const auto& actor : world.getActors())
+    //{
+    //    if (actor->isAlive())
+    //        target.draw(*actor, states);
+    //}
 }

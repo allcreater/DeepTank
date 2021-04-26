@@ -14,4 +14,8 @@ public:
 
  private:
     glm::uvec2 horizontalDimensions;
+
 };
+
+// Drawing
+void FillRoundArea(LevelLayer &layer, glm::ivec2 center, int radius, Tile tile = Tile::Empty());

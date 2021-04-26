@@ -29,10 +29,10 @@ void LevelLayer::swap(LevelLayer &other)
 
 Tile &LevelLayer::getTile(glm::ivec2 pos)
 {
+    revision++;
+
     if (!tiles.empty())
         return getTileUnsafe(pos);
-
-    revision++;
 
     throw std::logic_error{"trying to modify empty layer"};
 }
@@ -87,6 +87,8 @@ void LevelLayer::visit(const std::function<void(glm::ivec2, Tile &)> &visitor, g
     {
         visitor({x, y}, getTileUnsafe({x, y}));
     }
+
+    revision++;
 }
 
 World::World()

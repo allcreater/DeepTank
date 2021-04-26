@@ -9,6 +9,7 @@ class LayerRenderer final : public sf::Drawable
 {
 public:
     void setLayer(const LevelLayer *layer);
+    const LevelLayer *getLayer() const { return currentLayer; }
 
     void setAtlas(const TextureAtlas *atlas);
 
@@ -46,3 +47,15 @@ private:
     sf::Vector2f cameraPosition;
     std::vector<LayerRenderer> renderers;
 };
+
+template <typename T>
+glm::vec<2, T> to_glm(sf::Vector2<T> vec)
+{
+    return {vec.x, vec.y};
+}
+
+template <typename T>
+glm::vec<3, T> to_glm(sf::Vector3<T> vec)
+{
+    return {vec.x, vec.y, vec.z};
+}
