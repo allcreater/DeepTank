@@ -93,17 +93,6 @@ void LevelLayer::visit(const std::function<void(glm::ivec2, Tile &)> &visitor, g
 
 World::World()
 {
-    tileClasses.emplace_back( 0, "empty"s, 0, false );
-    tileClasses.emplace_back( 1, "dirt"s, 5);
-    tileClasses.emplace_back( 2, "rock"s, 20 );
-    tileClasses.emplace_back( 3, "cuprum_ore"s, 3 );
-    tileClasses.emplace_back( 4, "mineral_sapphire"s, 4 );
-    tileClasses.emplace_back( 5, "mineral_emerald"s, 4 );
-    tileClasses.emplace_back( 6, "mineral_amethyst"s, 4 );
-    tileClasses.emplace_back( 7, "mineral_opal"s, 4 );
-    tileClasses.emplace_back( 8, "gold_ore"s, 3 );
-    tileClasses.emplace_back( 9, "mineral_ruby"s, 10 );
-    tileClasses.emplace_back( 10, "fuel"s, 1 );
 }
 
 World::~World()
@@ -134,7 +123,7 @@ World::CellType World::categorizeTile(glm::ivec3 point) const
         return CellType::Unloaded;
 
     const auto horizontalPoint = glm::ivec2{point.x, point.y};
-    const auto& wallClass = getClasses()[wallLayer->getTile(horizontalPoint).classId];
+    const auto& wallClass = generator->getClasses()[wallLayer->getTile(horizontalPoint).classId];
     if (wallClass.isSolid)
         return World::CellType::Wall;
 
@@ -142,7 +131,7 @@ World::CellType World::categorizeTile(glm::ivec3 point) const
     if (!floorLayer || !floorLayer->isLoaded())
         return CellType::Unloaded;
 
-    const auto &floorClass = getClasses()[floorLayer->getTile(horizontalPoint).classId];
+    const auto &floorClass = generator->getClasses()[floorLayer->getTile(horizontalPoint).classId];
     if (floorClass.isSolid)
         return CellType::Floor;
 

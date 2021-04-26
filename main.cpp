@@ -8,9 +8,40 @@
 #include "World.h"
 #include "Actor.h"
 
-#include <chrono>
-
 #include "WorldGenerator.h"
+
+namespace
+{
+    void GatherResourcesAtRadius(LevelLayer &layer, glm::ivec2 center, int radius, int16_t gatherForce,
+                                 std::function<void(glm::ivec2, TileClassId)> onGather)
+    {
+        layer.visit(
+            [=](glm::ivec2 pos, Tile &tile) {
+                if (auto dir = center - pos; sqrt(dir.x * dir.x + dir.y * dir.y) <= radius)
+                {
+                    tile.actualStrength = std::max(0, tile.actualStrength - gatherForce);
+                    if (tile.actualStrength == 0)
+                    {
+                        onGather(pos, tile.classId);
+                        tile = Tile::Empty();
+                    }
+                }
+            },
+            center - glm::ivec2{radius}, center + glm::ivec2{radius});
+    }
+
+    std::unordered_map<TileClassId, int> HarvestResources(World &world, glm::ivec3 pos, int radius, int16_t gatherForce)
+    {
+        std::unordered_map<TileClassId, int> harvest;
+
+        auto *layer = world.getLayer(pos.z);
+        if (layer)
+            GatherResourcesAtRadius(*layer, glm::xy(pos), radius, gatherForce, [&harvest](glm::ivec2, TileClassId tile) { harvest[tile]++;});
+
+        return harvest;
+    }
+
+} // namespace
 
 const static auto title = "Deep.Drill.Tank. "s; 
 
@@ -90,7 +121,7 @@ private:
 
     void Init()
     {
-        tilesAtlas = TextureAtlas::MakeFromRegularGrid("Resources/tiles2.png", {16, 16}, 6);
+        tilesAtlas = TextureAtlas::MakeFromRegularGrid("Resources/tiles2.png", {16, 16}, 11);
 
         loadTextureOrThrow(tankTexture, "Resources/only_tank.png");
         loadTextureOrThrow(tankTowerTexture, "Resources/only_tower.png");
@@ -156,12 +187,13 @@ private:
             if (sf::Mouse::isButtonPressed(sf::Mouse::Right))
             {
                 auto effect = std::make_unique<Effect>(glm::vec3{to_glm(pos), visibleLayer}, glm::vec2{}, 0.1f, 0.0f, 200.0f, 4.0f,
-                                         [](Effect& effect, World &world)
-                                         {
-                                    if (auto *layer = world.getLayer(effect.getPosition().z))
-                                                 FillRoundArea(*layer, glm::ivec2{effect.getPositionOnLayer()},
-                                                               4);
-                                         });
+                    [](Effect& effect, World &world)
+                    {
+                        if (auto *layer = world.getLayer(effect.getPosition().z))
+                        {
+                           auto harvest =  HarvestResources(world, effect.getPosition(), 4, 1);
+                        }
+                    });
                 effect->setTexture(flameTexture);
                 world->addActor(std::move(effect));
             }

@@ -12,8 +12,11 @@ public:
     void generateLevelLayer(LevelLayer &currentLayer);
     std::future<LevelLayer> generateLevelLayerAsync(int depth);
 
+    std::span<const TileClass> getClasses() const { return tileClasses; }
+
  private:
     glm::uvec2 horizontalDimensions;
+     std::vector<TileClass> tileClasses;
 
 };
 

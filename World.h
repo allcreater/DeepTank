@@ -65,14 +65,13 @@ public:
     const LevelLayer *getLayer(int depth) const ;
     CellType categorizeTile(glm::ivec3 point) const;
 
+
     Actor &addActor(std::unique_ptr<Actor> actor);
     const ActorsList &getActors() const { return actors; }
     
-
     void Update(float dt);
 
     void setGenerator(std::shared_ptr<WorldGenerator> _generator) { generator = std::move(_generator); }
-    std::span<const TileClass> getClasses() const { return tileClasses; }
 
 private:
     void onLayerLoaded(const LevelLayer &layer);
@@ -88,7 +87,7 @@ private:
     int firstLayerDepth = 0;
 
     std::vector<Layer> layers;
-    std::vector<TileClass> tileClasses;
+    
     ActorsList actors;
 };
 
