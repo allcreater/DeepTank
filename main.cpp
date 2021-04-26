@@ -124,12 +124,17 @@ private:
         std::visit(overloaded{
             [&](KeyPressed key)
             {
-              if (key.code == sf::Keyboard::E)
+                if (key.code == sf::Keyboard::E)
                   visibleLayer++;
-              else if (key.code == sf::Keyboard::Q)
+                else if (key.code == sf::Keyboard::Q)
                   visibleLayer--;
-              else if (key.code == sf::Keyboard::F10)
-                StartNewGame();
+                else if (key.code == sf::Keyboard::F10)
+                    StartNewGame();
+                else if (key.code == sf::Keyboard::F1)
+                {
+                    auto* layer = world->getLayer(playerActor->getPosition().z + 1);
+                    FillRoundArea(*layer, playerActor->getPositionOnLayer(), 20);
+                }
             },
             [&](MouseButtonPressed button)
             {
@@ -256,6 +261,8 @@ private:
             visibleLayer = playerActor->getPosition().z;
 
             playerActor->setVelocity(velocity);
+
+            world->trimLevelsAbove(playerActor->getPosition().z);
         }
 
         if (!world)
@@ -276,7 +283,6 @@ private:
 
         if (playerActor->isAlive())
         {
-
             sf::View view{{cameraPosition.x, cameraPosition.y},
                           {static_cast<float>(window.getSize().x), static_cast<float>(window.getSize().y)}};
             window.setView(view);

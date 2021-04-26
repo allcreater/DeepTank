@@ -155,9 +155,6 @@ Actor &World::addActor(std::shared_ptr<Actor> actor)
 
 void World::Update(float dt)
 {
-    //// Удаляем ненужные слои
-    //while (!layers.empty() && layers.front().getDepth() < firstLayerDepth)
-    //    layers.pop_front();
 
     // включаем загруженные слои
     for (auto& layer : layers)
@@ -198,6 +195,18 @@ void World::Update(float dt)
 
 }
 
+void World::trimLevelsAbove(int minimalInterestingDepth)
+{
+    //// Удаляем ненужные слои. Осторожно, костыли
+    while ((!layers.empty() && std::holds_alternative<LevelLayer>(layers.front()) &&
+            std::get<LevelLayer>(layers.front()).getDepth() < minimalInterestingDepth))
+    {
+        layers.erase(layers.begin());
+        firstLayerDepth++;
+    }
+
+}
+
 void World::onLayerLoaded(const LevelLayer &layer)
 {
     for (const auto &actor : actors)
@@ -206,7 +215,7 @@ void World::onLayerLoaded(const LevelLayer &layer)
 
 void World::callOnReadyForActor(const std::shared_ptr<Actor> &actor, const LevelLayer &layer)
 {
-    if (actor->getPosition().z == layer.getDepth())
+    if (static_cast<int>(actor->getPosition().z) == layer.getDepth())
         actor->onReady(*this);
 }
 

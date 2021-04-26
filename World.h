@@ -72,6 +72,7 @@ public:
     void Update(float dt);
 
     void setGenerator(std::shared_ptr<WorldGenerator> _generator) { generator = std::move(_generator); }
+    void trimLevelsAbove(int minimalInterestingDepth);
 
 private:
     void onLayerLoaded(const LevelLayer &layer);
@@ -87,7 +88,7 @@ private:
     size_t maxLoadedLayers = 32;
     int firstLayerDepth = 0;
 
-    std::vector<Layer> layers;
+    std::deque<Layer> layers;
     
     ActorsList actors;
 };
