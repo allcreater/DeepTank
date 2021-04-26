@@ -18,6 +18,12 @@ void Character::update(float dt, World &world)
     const auto scale = static_cast<float>(getSize()) / maxDimension;
     sprite.setScale(scale, scale);
 
+    if (length(velocity) >= 1.0f)
+    {
+        const auto angle = glm::degrees(atan2f(velocity.y, velocity.x));
+        sprite.setRotation(angle + 90.0f);
+    }
+
     const auto tileBeneath = world.categorizeTile(glm::ivec3{position});
     if (tileBeneath == World::CellType::Unloaded)
         return;
@@ -34,6 +40,13 @@ void Character::update(float dt, World &world)
 
 }
 
+void Tank::draw(sf::RenderTarget &target, sf::RenderStates states) const
+{
+    target.draw(sprite, states);
+    target.draw(drillSprite, states);
+    target.draw(towerSprite, states);
+}
+
 void Tank::onReady(World &world)
 {
     auto *layer = world.getLayer(getPosition().z);
@@ -45,4 +58,22 @@ void Tank::onReady(World &world)
 void Tank::update(float dt, World &world)
 {
     Character::update(dt, world);
+
+    const auto *towerTexture = towerSprite.getTexture();
+    const auto *drillTexture = drillSprite.getTexture();
+
+    towerSprite = sprite;
+    towerSprite.setTexture(*towerTexture);
+
+    const auto angle = glm::radians(sprite.getRotation() - 90.0f);
+
+    drillSprite = sprite;
+    drillSprite.setPosition(drillSprite.getPosition() + sf::Vector2f{cos(angle), sin(angle)} * 2.0f );
+    drillSprite.setTexture(*drillTexture);
+}
+
+void Effect::draw(sf::RenderTarget &target, sf::RenderStates states) const
+{
+    states.blendMode = sf::BlendMode{sf::BlendMode::SrcAlpha, sf::BlendMode::One};
+    target.draw(sprite, states);
 }

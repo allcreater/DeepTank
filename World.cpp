@@ -152,7 +152,13 @@ World::CellType World::categorizeTile(glm::ivec3 point) const
 Actor & World::addActor(std::unique_ptr<Actor> actor)
 {
     actors.push_back(std::move(actor));
-    return *actors.back();
+    const auto& actorRef = actors.back();
+
+    // if immediately initialization is not possible, will be initialized with layer
+    if (const auto *layer = getLayer(actorRef->getPosition().z))
+        callOnReadyForActor(actorRef, *layer);
+
+    return *actorRef;
 }
 
 void World::Update(float dt)
@@ -188,14 +194,14 @@ void World::Update(float dt)
             actor->update(dt, *this);
     }
 
-    auto tailRange = std::ranges::remove_if(actors, [](const std::unique_ptr<Actor> &actor)
+    auto tailRange = std::ranges::remove_if(actors, [this](std::unique_ptr<Actor> &actor)
     {
-        return !actor->isAlive();
+        bool isDying = !actor->isAlive();
+        if (isDying) //crutch
+            actor->onDestroy(*this);
+        return isDying;
     });
 
-    std::ranges::for_each(tailRange, [this](std::unique_ptr<Actor> &actor) {
-        actor->onDestroy(*this);
-    });
     actors.erase(tailRange.begin(), tailRange.end());
 
 }
@@ -203,8 +209,11 @@ void World::Update(float dt)
 void World::onLayerLoaded(const LevelLayer &layer)
 {
     for (const auto &actor : actors)
-    {
-        if (actor->getPosition().z == layer.getDepth())
-            actor->onReady(*this);
-    }
+        callOnReadyForActor(actor, layer);
+}
+
+void World::callOnReadyForActor(const std::unique_ptr<Actor> &actor, const LevelLayer &layer)
+{
+    if (actor->getPosition().z == layer.getDepth())
+        actor->onReady(*this);
 }

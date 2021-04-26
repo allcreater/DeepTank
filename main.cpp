@@ -12,6 +12,8 @@
 
 #include "WorldGenerator.h"
 
+const static auto title = "Deep.Drill.Tank. "s; 
+
 class App
 {
 public:
@@ -22,7 +24,7 @@ public:
 
     void Run()
     {
-        window.create(sf::VideoMode(1280, 800), "");
+        window.create(sf::VideoMode(1280, 800), title);
 
         Init();
 
@@ -50,7 +52,7 @@ public:
 
             if (performanceCounterClock.getElapsedTime().asSeconds() >= 1.0f)
             {
-                window.setTitle("Deep Tank "s + std::to_string(fps) + " fps");
+                window.setTitle(title + std::to_string(fps) + " fps");
 
                 fps = 0;
                 performanceCounterClock.restart();
@@ -78,15 +80,23 @@ private:
               else if (key.code == sf::Keyboard::Q)
                   visibleLayer--;
             },
+            [&](MouseButtonPressed button)
+            {
+                //if (button.button == sf::Mouse::Left)
+            },
             [](auto){}
-                   }, event);
+        }, event);
     }
 
     void Init()
     {
         tilesAtlas = TextureAtlas::MakeFromRegularGrid("Resources/tiles2.png", {16, 16}, 6);
 
-        loadTextureOrThrow(tankTexture, "Resources/tank.png");
+        loadTextureOrThrow(tankTexture, "Resources/only_tank.png");
+        loadTextureOrThrow(tankTowerTexture, "Resources/only_tower.png");
+        loadTextureOrThrow(tankDrillTexture, "Resources/drill.png");
+
+        loadTextureOrThrow(flameTexture, "Resources/effect_flame.png");
 
         world = std::make_unique<World>();
         world->setGenerator(std::make_shared<WorldGenerator>(glm::uvec2{256, 256}));
@@ -97,6 +107,7 @@ private:
             tankActor->setTexture(tankTexture);
             tankActor->setSize(4);
             tankActor->setPosition({128, 128, 0.0});
+            tankActor->setAdditionalTextures(tankTowerTexture, tankDrillTexture);
 
             playerActor = tankActor.get();
             world->addActor(std::move(tankActor));
@@ -107,32 +118,59 @@ private:
 
     void Update(float dt)
     {
-        const auto cameraSpeed = 1000.0f * dt;
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::W))
-            cameraPosition.y -= cameraSpeed;
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::S))
-            cameraPosition.y += cameraSpeed;
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::A))
-            cameraPosition.x -= cameraSpeed;
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::D))
-            cameraPosition.x += cameraSpeed;
+        //const auto cameraSpeed = 1000.0f * dt;
+        //if (sf::Keyboard::isKeyPressed(sf::Keyboard::W))
+        //    cameraPosition.y -= cameraSpeed;
+        //if (sf::Keyboard::isKeyPressed(sf::Keyboard::S))
+        //    cameraPosition.y += cameraSpeed;
+        //if (sf::Keyboard::isKeyPressed(sf::Keyboard::A))
+        //    cameraPosition.x -= cameraSpeed;
+        //if (sf::Keyboard::isKeyPressed(sf::Keyboard::D))
+        //    cameraPosition.x += cameraSpeed;
 
         glm::vec2 velocity{};
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up))
-            velocity += glm::vec2{0.0f, -4.0f};
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down))
-            velocity += glm::vec2{0.0f, 4.0f};
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
-            velocity += glm::vec2{-4.0f, 0.0f};
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right))
-            velocity += glm::vec2{4.0f, 0.0f};
+        //if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up))
+        //    velocity += glm::vec2{0.0f, -40.0f};
+        //if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down))
+        //    velocity += glm::vec2{0.0f, 40.0f};
+        //if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
+        //    velocity += glm::vec2{-40.0f, 0.0f};
+        //if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right))
+        //    velocity += glm::vec2{40.0f, 0.0f};
 
-        playerActor->setVelocity(velocity);
+
 
 
         sf::View view{{cameraPosition.x, cameraPosition.y},
                       {static_cast<float>(window.getSize().x), static_cast<float>(window.getSize().y)}};
         window.setView(view);
+
+        {
+            const auto mousePos = window.mapPixelToCoords(sf::Mouse::getPosition(window));
+            const auto pos = worldRenderer->getInverseTransform().transformPoint(mousePos);
+            if (sf::Mouse::isButtonPressed(sf::Mouse::Left))
+            {
+                velocity = -normalize((playerActor->getPositionOnLayer() - to_glm(pos))) * 10.0f;
+            }
+
+            if (sf::Mouse::isButtonPressed(sf::Mouse::Right))
+            {
+                auto effect = std::make_unique<Effect>(glm::vec3{to_glm(pos), visibleLayer}, glm::vec2{}, 0.1f, 0.0f, 200.0f, 4.0f,
+                                         [](Effect& effect, World &world)
+                                         {
+                                    if (auto *layer = world.getLayer(effect.getPosition().z))
+                                                 FillRoundArea(*layer, glm::ivec2{effect.getPositionOnLayer()},
+                                                               4);
+                                         });
+                effect->setTexture(flameTexture);
+                world->addActor(std::move(effect));
+            }
+        }
+
+        cameraPosition = worldRenderer->getTransform().transformPoint(playerActor->getPosition().x,
+                                                                   playerActor->getPosition().y);
+
+        playerActor->setVelocity(velocity);
 
 
         world->Update(dt);
@@ -156,7 +194,7 @@ private:
 private:
     sf::RenderWindow window;
     TextureAtlas tilesAtlas;
-    sf::Texture tankTexture;
+    sf::Texture tankTexture, tankTowerTexture, tankDrillTexture, flameTexture;
 
     std::unique_ptr<World> world;
 

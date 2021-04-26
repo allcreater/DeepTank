@@ -92,7 +92,7 @@ void WorldRenderer::setVisibleLayers(int _topLayer, int _numLayers)
 
         const auto i = layerIndex - topLayer;
         auto &renderer = renderers[i];
-        const uint8_t intensity = 255 / (i + 1);
+        const uint8_t intensity = (i == 1) ? 200 : 255 / (i + 1);
         renderer.setBaseColor(sf::Color{intensity, intensity, intensity, 255});
         renderer.setAtlas(&tilesAtlas);
         renderer.setLayer(layer);

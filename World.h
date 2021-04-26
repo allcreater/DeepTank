@@ -76,6 +76,7 @@ public:
 
 private:
     void onLayerLoaded(const LevelLayer &layer);
+    void callOnReadyForActor(const std::unique_ptr<Actor> &actor, const LevelLayer &layer);
 
 private:
     struct UnavailableLevel{};

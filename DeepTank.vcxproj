@@ -162,6 +162,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Actor.h" />
+    <ClInclude Include="Effects.h" />
     <ClInclude Include="SfmlEventHelper.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="TextureAtlas.h" />
