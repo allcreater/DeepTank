@@ -30,7 +30,8 @@ namespace
             center - glm::ivec2{radius}, center + glm::ivec2{radius});
     }
 
-    std::unordered_map<TileClassId, int> HarvestResources(World &world, glm::ivec3 pos, int radius, int16_t gatherForce)
+    using ResourceInventory = std::unordered_map<TileClassId, int>;
+    ResourceInventory HarvestResources(World &world, glm::ivec3 pos, int radius, int16_t gatherForce)
     {
         std::unordered_map<TileClassId, int> harvest;
 
@@ -41,12 +42,17 @@ namespace
         return harvest;
     }
 
-    std::unique_ptr<Effect> MakeExplosionEffect(glm::vec3 position, int radius, const sf::Texture& texture, float gatherForce = 1.0f)
+    std::unique_ptr<Effect> MakeExplosionEffect(glm::vec3 position, int radius, const sf::Texture& texture, float gatherForce = 1.0f, ResourceInventory* inventory = nullptr)
     {
         auto effect = std::make_unique<Effect>(position, glm::vec2{}, 0.1f, 0.0f, 200.0, 4.0f, [=](Effect &effect, World &world) {
            if (auto *layer = world.getLayer(effect.getPosition().z))
            {
                auto harvest = HarvestResources(world, effect.getPosition(), radius, gatherForce);
+               if (inventory)
+               {
+                   for (auto [tileClassId, amount] : harvest)
+                       (*inventory)[tileClassId] += amount;
+               }
            }
        });
         effect->setTexture(texture);
@@ -138,6 +144,7 @@ private:
         loadTextureOrThrow(tankTexture, "Resources/only_tank.png");
         loadTextureOrThrow(tankTowerTexture, "Resources/only_tower.png");
         loadTextureOrThrow(tankDrillTexture, "Resources/drill.png");
+        loadTextureOrThrow(baseTexture, "Resources/basa.png");
 
         loadTextureOrThrow(flameTexture, "Resources/effect_flame.png");
         loadTextureOrThrow(glowTexture, "Resources/effect_glow.png");
@@ -145,96 +152,104 @@ private:
         world = std::make_unique<World>();
         world->setGenerator(std::make_shared<WorldGenerator>(glm::uvec2{256, 256}));
 
+        {
+            auto baseActor = std::make_unique<Base>();
+            baseActor->setTexture(baseTexture);
+            baseActor->setSize(30);
+            baseActor->setPosition({128, 128, 0.0});
+
+            world->addActor(std::move(baseActor));
+        }
 
         {
-            auto tankActor = std::make_unique<Tank>();
-            tankActor->setTexture(tankTexture);
-            tankActor->setSize(4);
-            tankActor->setPosition({128, 128, 0.0});
-            tankActor->setAdditionalTextures(tankTowerTexture, tankDrillTexture);
+            playerActor = std::make_unique<Tank>();
+            playerActor->setTexture(tankTexture);
+            playerActor->setSize(4);
+            playerActor->setPosition({128, 128, 0.0});
+            playerActor->setAdditionalTextures(tankTowerTexture, tankDrillTexture);
 
             //cannon
-            tankActor->getWeaponList().emplace_back([&](Actor *instigator, glm::vec2 direction)
+            playerActor->getWeaponList().emplace_back(
+                [&](Character &instigator, glm::vec2 direction)
             {
-                auto bullet = std::make_unique<Bullet>();
-                bullet->setVelocity(direction * 100.0f);
-                bullet->setPayload(MakeExplosionEffect(glm::vec3{}, 4, flameTexture));
+                auto bullet = std::make_unique<Bullet>(instigator.getPosition(), instigator.getVelocity() + direction * 100.0f);
+                bullet->setPosition(instigator.getPosition() +
+                    glm::vec3{direction * static_cast<float>(instigator.getSize() * 0.5f), 0.0f});
+                bullet->setPayload(MakeExplosionEffect(glm::vec3{}, 6, flameTexture, 6));
                 bullet->setTexture(glowTexture);
                 return bullet;
-            });
+            }, 0.6f);
 
             //drill
-            tankActor->getWeaponList().emplace_back([&](Actor *instigator, glm::vec2 direction) {
-                return MakeExplosionEffect(glm::vec3{}, 2, flameTexture, 3.0f);
+            playerActor->getWeaponList().emplace_back(
+                [&](Character &instigator, glm::vec2 direction) {
+                    return MakeExplosionEffect(instigator.getPosition() +
+                            glm::vec3{instigator.getFrontDirection() * static_cast<float>(instigator.getSize() * 0.5f), 0.0f},
+                                               2, flameTexture, 3.0f, &inventory);
             }, 0.1f, std::numeric_limits<int>::max());
 
-            playerActor = tankActor.get();
-            world->addActor(std::move(tankActor));
+            world->addActor(playerActor);
         }
+
 
         worldRenderer = std::make_unique<WorldRenderer>(*world, tilesAtlas);
     }
 
     void Update(float dt)
     {
-        //const auto cameraSpeed = 1000.0f * dt;
-        //if (sf::Keyboard::isKeyPressed(sf::Keyboard::W))
-        //    cameraPosition.y -= cameraSpeed;
-        //if (sf::Keyboard::isKeyPressed(sf::Keyboard::S))
-        //    cameraPosition.y += cameraSpeed;
-        //if (sf::Keyboard::isKeyPressed(sf::Keyboard::A))
-        //    cameraPosition.x -= cameraSpeed;
-        //if (sf::Keyboard::isKeyPressed(sf::Keyboard::D))
-        //    cameraPosition.x += cameraSpeed;
+        // player input
+        if (playerActor)
+        {
+            constexpr auto moveSpeed = 10.0f;
+            constexpr auto rotateSpeed = 3.0f;
 
-        glm::vec2 velocity{};
-        //if (sf::Keyboard::isKeyPressed(sf::Keyboard::Up))
-        //    velocity += glm::vec2{0.0f, -40.0f};
-        //if (sf::Keyboard::isKeyPressed(sf::Keyboard::Down))
-        //    velocity += glm::vec2{0.0f, 40.0f};
-        //if (sf::Keyboard::isKeyPressed(sf::Keyboard::Left))
-        //    velocity += glm::vec2{-40.0f, 0.0f};
-        //if (sf::Keyboard::isKeyPressed(sf::Keyboard::Right))
-        //    velocity += glm::vec2{40.0f, 0.0f};
+            glm::vec2 velocity{};
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::W))
+                velocity = playerActor->getFrontDirection() * moveSpeed;
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::S))
+                velocity = playerActor->getFrontDirection() * moveSpeed * -0.5f;
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::A))
+                playerActor->setRotation(playerActor->getRotation() - rotateSpeed * dt);
+            if (sf::Keyboard::isKeyPressed(sf::Keyboard::D))
+                playerActor->setRotation(playerActor->getRotation() + rotateSpeed * dt);
 
+            playerActor->setVelocity(velocity);
 
+            {
+                const auto mousePos = window.mapPixelToCoords(sf::Mouse::getPosition(window));
+                const auto pos = worldRenderer->getInverseTransform().transformPoint(mousePos);
 
+                const auto directionToMouse = [&]() {
+                    const auto dir = to_glm(pos) - playerActor->getPositionOnLayer();
+                    return length(dir) > 0 ? dir / length(dir) : glm::vec2{};
+                }();
+
+                if (sf::Mouse::isButtonPressed(sf::Mouse::Left))
+                {
+                    //velocity = directionToMouse * 10.0f;
+                }
+
+                if (sf::Mouse::isButtonPressed(sf::Mouse::Right))
+                {
+                    playerActor->setActiveWeapon((playerActor->getActiveWeapon() + 1) % 2);
+                    playerActor->triggerShoot();
+                    // auto bullet = std::make_unique<Bullet>(playerActor->getPosition(), directionToMouse * 90.0f);
+                    // bullet->setPayload(MakeExplosionEffect(glm::vec3{to_glm(pos), visibleLayer}, 4, flameTexture));
+                    // bullet->setTexture(glowTexture);
+                    // world->addActor(std::move(bullet));
+                }
+                playerActor->setShootDirection(directionToMouse);
+            }
+
+            cameraPosition = worldRenderer->getTransform().transformPoint(playerActor->getPosition().x,
+                                                                          playerActor->getPosition().y);
+
+            playerActor->setVelocity(velocity);
+        }
 
         sf::View view{{cameraPosition.x, cameraPosition.y},
                       {static_cast<float>(window.getSize().x), static_cast<float>(window.getSize().y)}};
         window.setView(view);
-
-        {
-            const auto mousePos = window.mapPixelToCoords(sf::Mouse::getPosition(window));
-            const auto pos = worldRenderer->getInverseTransform().transformPoint(mousePos);
-
-            const auto directionToMouse = [&]()
-            {
-                const auto dir = to_glm(pos) - playerActor->getPositionOnLayer();
-                return length(dir) > 0 ? dir / length(dir) : glm::vec2{};
-            }();
-
-            if (sf::Mouse::isButtonPressed(sf::Mouse::Left))
-            {
-                velocity = directionToMouse * 10.0f;
-            }
-
-            if (sf::Mouse::isButtonPressed(sf::Mouse::Right))
-            {
-                playerActor->requestShootTo(1);
-                //auto bullet = std::make_unique<Bullet>(playerActor->getPosition(), directionToMouse * 90.0f);
-                //bullet->setPayload(MakeExplosionEffect(glm::vec3{to_glm(pos), visibleLayer}, 4, flameTexture));
-                //bullet->setTexture(glowTexture);
-                //world->addActor(std::move(bullet));
-            }
-            playerActor->setShootDirection(directionToMouse);
-        }
-
-        cameraPosition = worldRenderer->getTransform().transformPoint(playerActor->getPosition().x,
-                                                                   playerActor->getPosition().y);
-
-        playerActor->setVelocity(velocity);
-
 
         world->Update(dt);
 
@@ -258,6 +273,7 @@ private:
     sf::RenderWindow window;
     TextureAtlas tilesAtlas;
     sf::Texture tankTexture, tankTowerTexture, tankDrillTexture;
+    sf::Texture baseTexture;
     sf::Texture flameTexture, glowTexture;
 
     std::unique_ptr<World> world;
@@ -266,7 +282,9 @@ private:
     sf::Vector2f cameraPosition = {128, 128};
     int visibleLayer = 0;
 
-    Character *playerActor = nullptr;
+    // mostly cruthes
+    std::shared_ptr<Tank> playerActor = nullptr;
+    ResourceInventory inventory;
 };
 
 int main()

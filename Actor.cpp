@@ -21,19 +21,18 @@ float Character::directionToAngle(glm::vec2 dir)
 
 void Character::updateWeapon(float dt, World &world)
 {
-    if (weaponToShoot.has_value() && *weaponToShoot < weaponList.size())
+    if (shootTrigger && activeWeapon < weaponList.size())
     {
-        auto &weapon = weaponList.at(*weaponToShoot);
+        auto &weapon = weaponList[activeWeapon];
         if (weapon.reloadTimer <= 0.01f && weapon.amunition > 0)
         {
-            weapon.amunition--;
-            weapon.reloadTimer = weapon.reloadTime;
+            if (auto effect = weapon.effectFactory(*this, shootDirection))
+            {
+                weapon.amunition--;
+                weapon.reloadTimer = weapon.reloadTime;
 
-            auto effect = weapon.effectFactory(this, shootDirection);
-            effect->setVelocity(effect->getVelocity() + getVelocity());
-            effect->setPosition(getPosition() + glm::vec3{shootDirection * static_cast<float>(getSize() * 0.5f), 0.0f}); // offset?
-            world.addActor(std::move(effect));
-
+                world.addActor(std::move(effect));
+            }
         }
     }
 
@@ -42,7 +41,7 @@ void Character::updateWeapon(float dt, World &world)
         weapon.reloadTimer = std::max(0.0f, weapon.reloadTimer - dt);
     }
 
-    weaponToShoot = std::nullopt;
+    shootTrigger = false;
 }
 
 void Character::update(float dt, World &world)
@@ -53,11 +52,7 @@ void Character::update(float dt, World &world)
     const auto maxDimension = std::max(sprite.getTexture()->getSize().x, sprite.getTexture()->getSize().y);
     const auto scale = static_cast<float>(getSize()) / maxDimension;
     sprite.setScale(scale, scale);
-
-    if (length(velocity) >= 1.0f)
-    {
-        sprite.setRotation(directionToAngle(velocity));
-    }
+    sprite.setRotation(glm::degrees(rotation) + 90.0f);
 
     const auto tileBeneath = world.categorizeTile(glm::ivec3{position});
     if (tileBeneath == World::CellType::Unloaded)
@@ -82,6 +77,14 @@ void Tank::draw(sf::RenderTarget &target, sf::RenderStates states) const
     target.draw(sprite, states);
     target.draw(drillSprite, states);
     target.draw(towerSprite, states);
+}
+
+void Base::onReady(World &world)
+{
+    auto *layer = world.getLayer(getPosition().z);
+    assert(layer);
+
+    FillRoundArea(*layer, getPositionOnLayer(), getSize());
 }
 
 void Effect::update(float dt, World &world)

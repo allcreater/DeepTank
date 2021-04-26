@@ -138,7 +138,7 @@ World::CellType World::categorizeTile(glm::ivec3 point) const
     return CellType::Empty;
 }
 
-Actor & World::addActor(std::unique_ptr<Actor> actor)
+Actor &World::addActor(std::shared_ptr<Actor> actor)
 {
     actors.push_back(std::move(actor));
     const auto& actorRef = actors.back();
@@ -183,7 +183,7 @@ void World::Update(float dt)
             actor->update(dt, *this);
     }
 
-    auto tailRange = std::ranges::remove_if(actors, [this](std::unique_ptr<Actor> &actor)
+    auto tailRange = std::ranges::remove_if(actors, [this](std::shared_ptr<Actor> &actor)
     {
         bool isDying = !actor->isAlive();
         if (isDying) //crutch
@@ -201,7 +201,7 @@ void World::onLayerLoaded(const LevelLayer &layer)
         callOnReadyForActor(actor, layer);
 }
 
-void World::callOnReadyForActor(const std::unique_ptr<Actor> &actor, const LevelLayer &layer)
+void World::callOnReadyForActor(const std::shared_ptr<Actor> &actor, const LevelLayer &layer)
 {
     if (actor->getPosition().z == layer.getDepth())
         actor->onReady(*this);

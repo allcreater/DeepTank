@@ -125,7 +125,7 @@ void WorldRenderer::draw(sf::RenderTarget &target, sf::RenderStates states) cons
 
         target.draw(renderer, states);
 
-        auto actorShouldBeRendered = [&renderer](const std::unique_ptr<Actor> &actor) {
+        auto actorShouldBeRendered = [&renderer](const std::shared_ptr<Actor> &actor) {
             return actor->isAlive() && renderer.getLayer() && renderer.getLayer()->getDepth() == static_cast<int>(actor->getPosition().z)+1;
         };
 

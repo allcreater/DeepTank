@@ -27,7 +27,7 @@ public:
 
 struct Weapon
 {
-    std::function<std::unique_ptr<class Effect>(Actor* instigator, glm::vec2 direction)> effectFactory;
+    std::function<std::unique_ptr<class Effect>(class Character& instigator, glm::vec2 direction)> effectFactory;
 
     float reloadTime = 0.2f;
     int amunition = 100;
@@ -38,7 +38,11 @@ class Character : public Actor
 {
 public:
     void setVelocity(glm::vec2 _velocity) { velocity = _velocity; }
-    glm::vec2 getVelocity() const { return velocity; } 
+    glm::vec2 getVelocity() const { return velocity; }
+
+    void setRotation(float angle) { rotation = angle; }
+    float getRotation() const { return rotation; }
+    glm::vec2 getFrontDirection() const { return {cos(rotation), sin(rotation)}; }
 
     void update(float dt, World &world) override;
 
@@ -49,7 +53,9 @@ public:
     glm::vec3 getPosition() const override { return position; }
     glm::vec2 getPositionOnLayer() const { return {position.x, position.y}; }
 
-    void requestShootTo(size_t weapon) { weaponToShoot = weapon; }
+    size_t getActiveWeapon() const { return activeWeapon; }
+    void setActiveWeapon(size_t weaponIndex) { activeWeapon = weaponIndex; }
+    void triggerShoot() { shootTrigger = true; }
     void setShootDirection(glm::vec2 _dir) { shootDirection = _dir; }
 
     std::vector<Weapon> &getWeaponList() { return weaponList; }
@@ -69,8 +75,10 @@ protected:
 
 protected:
     sf::Sprite sprite;
+    float rotation = 0.0f;
 
-    std::optional<size_t> weaponToShoot;
+    size_t activeWeapon = 0;
+    bool shootTrigger = false;
     std::vector<Weapon> weaponList;
     glm::vec2 shootDirection;
 
@@ -88,7 +96,7 @@ private:
 class Tank : public Character
 {
 public:
-    virtual void onReady(World &world);
+    void onReady(World &world) override;
     void update(float dt, World &world) override;
 
     void setAdditionalTextures(const sf::Texture &towerTexture, const sf::Texture &drillTexture)
@@ -103,6 +111,12 @@ protected:
 private:
     sf::Sprite towerSprite;
     sf::Sprite drillSprite;
+};
+
+class Base : public Character
+{
+public:
+    void onReady(World &world) override;
 };
 
 

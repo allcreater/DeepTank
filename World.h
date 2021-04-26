@@ -55,7 +55,7 @@ public:
         Ramp
     };
 
-    using ActorsList = std::list<std::unique_ptr<Actor>>;
+    using ActorsList = std::list<std::shared_ptr<Actor>>;
 
 public:
     explicit World();
@@ -66,7 +66,7 @@ public:
     CellType categorizeTile(glm::ivec3 point) const;
 
 
-    Actor &addActor(std::unique_ptr<Actor> actor);
+    Actor &addActor(std::shared_ptr<Actor> actor);
     const ActorsList &getActors() const { return actors; }
     
     void Update(float dt);
@@ -75,7 +75,7 @@ public:
 
 private:
     void onLayerLoaded(const LevelLayer &layer);
-    void callOnReadyForActor(const std::unique_ptr<Actor> &actor, const LevelLayer &layer);
+    void callOnReadyForActor(const std::shared_ptr<Actor> &actor, const LevelLayer &layer);
 
 private:
     struct UnavailableLevel{};
