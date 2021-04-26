@@ -49,7 +49,7 @@ void LayerRenderer::update(bool force)
         const auto bottom = region.top + region.height;
         const auto right = region.left + region.width;
 
-        const glm::vec2 lt = glm::vec2{pos} - 6.0f/8, bd = glm::vec2{pos} + 6.0f / 8;
+        const glm::vec2 lt = glm::vec2{pos} - 8.0f/12, bd = glm::vec2{pos} + 8.0f / 12;
 
         vertexArray[baseVertexIndex+0] = sf::Vertex{{lt.x, lt.y}, baseColor, sf::Vector2f{region.left, region.top}};
         vertexArray[baseVertexIndex+1] = sf::Vertex{{bd.x, lt.y}, baseColor, sf::Vector2f{right, region.top}};

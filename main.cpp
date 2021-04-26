@@ -84,7 +84,7 @@ private:
 
     void Init()
     {
-        tilesAtlas = TextureAtlas::MakeFromRegularGrid("Resources/tiles.png", {12, 12}, 6);
+        tilesAtlas = TextureAtlas::MakeFromRegularGrid("Resources/tiles2.png", {16, 16}, 6);
 
         loadTextureOrThrow(tankTexture, "Resources/tank.png");
 
@@ -138,7 +138,7 @@ private:
         world->Update(dt);
 
         worldRenderer->setCameraPosition(cameraPosition);
-        worldRenderer->setScale(8.0, 8.0);
+        worldRenderer->setScale(12.0, 12.0);
         worldRenderer->setVisibleLayers(visibleLayer, 16);
         worldRenderer->update();
     }

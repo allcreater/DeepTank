@@ -92,11 +92,16 @@ void LevelLayer::visit(const std::function<void(glm::ivec2, Tile &)> &visitor, g
 World::World()
 {
     tileClasses.emplace_back( 0, "empty"s, 0, false );
-    tileClasses.emplace_back( 1, "crystal"s );
-    tileClasses.emplace_back( 2, "ground"s );
-    tileClasses.emplace_back( 3, "rock"s );
-    tileClasses.emplace_back( 4, "cuprum_ore"s );
-    tileClasses.emplace_back( 5, "gold_ore"s );
+    tileClasses.emplace_back( 1, "dirt"s, 5);
+    tileClasses.emplace_back( 2, "rock"s, 20 );
+    tileClasses.emplace_back( 3, "cuprum_ore"s, 3 );
+    tileClasses.emplace_back( 4, "mineral_sapphire"s, 4 );
+    tileClasses.emplace_back( 5, "mineral_emerald"s, 4 );
+    tileClasses.emplace_back( 6, "mineral_amethyst"s, 4 );
+    tileClasses.emplace_back( 7, "mineral_opal"s, 4 );
+    tileClasses.emplace_back( 8, "gold_ore"s, 3 );
+    tileClasses.emplace_back( 9, "mineral_ruby"s, 10 );
+    tileClasses.emplace_back( 10, "fuel"s, 1 );
 }
 
 World::~World()
