@@ -12,15 +12,24 @@ public:
     virtual void onReady(World& world){}
     virtual void onDestroy(World &world) {}
 
-    virtual bool isAlive() const = 0;
-
     virtual void setSize(uint8_t size) = 0;
     virtual uint8_t getSize() const = 0;
 
     virtual void setPosition(glm::vec3 position) = 0;
     virtual glm::vec3 getPosition() const = 0;
 
+    bool isAlive() const { return world && isAliveImpl(); }
+
+    void setWorld(const World *_world) { world = _world; }
+    const World *getWorld() const { return world; }
+
     virtual ~Actor() = default;
+
+protected:
+
+    virtual bool isAliveImpl() const = 0;
+private:
+    const World *world = nullptr;
 
     //virtual void draw(sf::RenderTarget &target, sf::RenderStates states) const override {}
 };
@@ -64,7 +73,7 @@ public:
     void setHP(float _hp) { hp = _hp; }
     float getHP() const { return hp; }
 
-    bool isAlive() const override { return hp > 0.0f; }
+    bool isAliveImpl() const override { return hp > 0.0f; }
 
     void setTexture(const sf::Texture &texture) { sprite.setTexture(texture); }
 
@@ -156,7 +165,7 @@ public:
     glm::vec3 getPosition() const override { return position; }
     glm::vec2 getPositionOnLayer() const { return {position.x, position.y}; }
 
-    bool isAlive() const override { return lifetime > 0.0 && size > 0.0f; }
+    bool isAliveImpl() const override { return lifetime > 0.0 && size > 0.0f; }
 
     void setTexture(const sf::Texture &texture) { sprite.setTexture(texture); }
 

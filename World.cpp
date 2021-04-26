@@ -140,6 +140,7 @@ World::CellType World::categorizeTile(glm::ivec3 point) const
 
 Actor &World::addActor(std::shared_ptr<Actor> actor)
 {
+    actor->setWorld(this);
     actors.push_back(std::move(actor));
     const auto& actorRef = actors.back();
 
@@ -186,8 +187,11 @@ void World::Update(float dt)
     auto tailRange = std::ranges::remove_if(actors, [this](std::shared_ptr<Actor> &actor)
     {
         bool isDying = !actor->isAlive();
-        if (isDying) //crutch
+        if (isDying) // crutch
+        {
             actor->onDestroy(*this);
+            actor->setWorld(nullptr);
+        }
         return isDying;
     });
 
