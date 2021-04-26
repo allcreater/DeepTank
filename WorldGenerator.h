@@ -16,7 +16,7 @@ public:
 
  private:
     glm::uvec2 horizontalDimensions;
-     std::vector<TileClass> tileClasses;
+    std::vector<TileClass> tileClasses;
 
 };
 

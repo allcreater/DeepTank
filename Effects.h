@@ -13,4 +13,3 @@
 //{
 //    std::function<void(Effect & effect, World & world)> Make
 //}
-

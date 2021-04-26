@@ -31,7 +31,7 @@ Tile &LevelLayer::getTile(glm::ivec2 pos)
 {
     revision++;
 
-    if (!tiles.empty())
+    if (!tiles.empty() && pos.x >= 0 && pos.y >= 0 && pos.x < size.x && pos.y < size.y)
         return getTileUnsafe(pos);
 
     throw std::logic_error{"trying to modify empty layer"};
@@ -39,7 +39,7 @@ Tile &LevelLayer::getTile(glm::ivec2 pos)
 
 const Tile &LevelLayer::getTile(glm::ivec2 pos) const
 {
-    if (!tiles.empty())
+    if (!tiles.empty() && pos.x >= 0 && pos.y >= 0 && pos.x < size.x && pos.y < size.y)
         return getTileUnsafe(pos);
 
     return Tile::Empty();

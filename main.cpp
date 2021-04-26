@@ -41,6 +41,18 @@ namespace
         return harvest;
     }
 
+    std::unique_ptr<Effect> MakeExplosionEffect(glm::vec3 position, int radius, const sf::Texture& texture, float gatherForce = 1.0f)
+    {
+        auto effect = std::make_unique<Effect>(position, glm::vec2{}, 0.1f, 0.0f, 200.0, 4.0f, [=](Effect &effect, World &world) {
+           if (auto *layer = world.getLayer(effect.getPosition().z))
+           {
+               auto harvest = HarvestResources(world, effect.getPosition(), radius, gatherForce);
+           }
+       });
+        effect->setTexture(texture);
+        return effect;
+    }
+
 } // namespace
 
 const static auto title = "Deep.Drill.Tank. "s; 
@@ -128,6 +140,7 @@ private:
         loadTextureOrThrow(tankDrillTexture, "Resources/drill.png");
 
         loadTextureOrThrow(flameTexture, "Resources/effect_flame.png");
+        loadTextureOrThrow(glowTexture, "Resources/effect_glow.png");
 
         world = std::make_unique<World>();
         world->setGenerator(std::make_shared<WorldGenerator>(glm::uvec2{256, 256}));
@@ -139,6 +152,21 @@ private:
             tankActor->setSize(4);
             tankActor->setPosition({128, 128, 0.0});
             tankActor->setAdditionalTextures(tankTowerTexture, tankDrillTexture);
+
+            //cannon
+            tankActor->getWeaponList().emplace_back([&](Actor *instigator, glm::vec2 direction)
+            {
+                auto bullet = std::make_unique<Bullet>();
+                bullet->setVelocity(direction * 100.0f);
+                bullet->setPayload(MakeExplosionEffect(glm::vec3{}, 4, flameTexture));
+                bullet->setTexture(glowTexture);
+                return bullet;
+            });
+
+            //drill
+            tankActor->getWeaponList().emplace_back([&](Actor *instigator, glm::vec2 direction) {
+                return MakeExplosionEffect(glm::vec3{}, 2, flameTexture, 3.0f);
+            }, 0.1f, std::numeric_limits<int>::max());
 
             playerActor = tankActor.get();
             world->addActor(std::move(tankActor));
@@ -179,24 +207,27 @@ private:
         {
             const auto mousePos = window.mapPixelToCoords(sf::Mouse::getPosition(window));
             const auto pos = worldRenderer->getInverseTransform().transformPoint(mousePos);
+
+            const auto directionToMouse = [&]()
+            {
+                const auto dir = to_glm(pos) - playerActor->getPositionOnLayer();
+                return length(dir) > 0 ? dir / length(dir) : glm::vec2{};
+            }();
+
             if (sf::Mouse::isButtonPressed(sf::Mouse::Left))
             {
-                velocity = -normalize((playerActor->getPositionOnLayer() - to_glm(pos))) * 10.0f;
+                velocity = directionToMouse * 10.0f;
             }
 
             if (sf::Mouse::isButtonPressed(sf::Mouse::Right))
             {
-                auto effect = std::make_unique<Effect>(glm::vec3{to_glm(pos), visibleLayer}, glm::vec2{}, 0.1f, 0.0f, 200.0f, 4.0f,
-                    [](Effect& effect, World &world)
-                    {
-                        if (auto *layer = world.getLayer(effect.getPosition().z))
-                        {
-                           auto harvest =  HarvestResources(world, effect.getPosition(), 4, 1);
-                        }
-                    });
-                effect->setTexture(flameTexture);
-                world->addActor(std::move(effect));
+                playerActor->requestShootTo(1);
+                //auto bullet = std::make_unique<Bullet>(playerActor->getPosition(), directionToMouse * 90.0f);
+                //bullet->setPayload(MakeExplosionEffect(glm::vec3{to_glm(pos), visibleLayer}, 4, flameTexture));
+                //bullet->setTexture(glowTexture);
+                //world->addActor(std::move(bullet));
             }
+            playerActor->setShootDirection(directionToMouse);
         }
 
         cameraPosition = worldRenderer->getTransform().transformPoint(playerActor->getPosition().x,
@@ -226,7 +257,8 @@ private:
 private:
     sf::RenderWindow window;
     TextureAtlas tilesAtlas;
-    sf::Texture tankTexture, tankTowerTexture, tankDrillTexture, flameTexture;
+    sf::Texture tankTexture, tankTowerTexture, tankDrillTexture;
+    sf::Texture flameTexture, glowTexture;
 
     std::unique_ptr<World> world;
 

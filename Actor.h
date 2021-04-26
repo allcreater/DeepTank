@@ -25,6 +25,14 @@ public:
     //virtual void draw(sf::RenderTarget &target, sf::RenderStates states) const override {}
 };
 
+struct Weapon
+{
+    std::function<std::unique_ptr<class Effect>(Actor* instigator, glm::vec2 direction)> effectFactory;
+
+    float reloadTime = 0.2f;
+    int amunition = 100;
+    float reloadTimer = 0.0f;
+};
 
 class Character : public Actor
 {
@@ -41,6 +49,11 @@ public:
     glm::vec3 getPosition() const override { return position; }
     glm::vec2 getPositionOnLayer() const { return {position.x, position.y}; }
 
+    void requestShootTo(size_t weapon) { weaponToShoot = weapon; }
+    void setShootDirection(glm::vec2 _dir) { shootDirection = _dir; }
+
+    std::vector<Weapon> &getWeaponList() { return weaponList; }
+
     void damage(float amount) { hp -= amount; }
     void setHP(float _hp) { hp = _hp; }
     float getHP() const { return hp; }
@@ -52,8 +65,17 @@ public:
 protected:
     void draw(sf::RenderTarget &target, sf::RenderStates states) const override;
 
+    static float directionToAngle(glm::vec2 dir);
+
 protected:
     sf::Sprite sprite;
+
+    std::optional<size_t> weaponToShoot;
+    std::vector<Weapon> weaponList;
+    glm::vec2 shootDirection;
+
+private:
+    void updateWeapon(float dt, World &world);
 
 private:
     glm::vec3 position = {};
@@ -61,6 +83,7 @@ private:
     float hp = 1.0f;
     uint8_t size = 1;
 };
+
 
 class Tank : public Character
 {
@@ -104,27 +127,12 @@ public:
         position{position},
         velocity{velocity}, lifetime{lifetime}, angularVelocity{angularVelocity},
         sizeVelocity{sizeVelocity}, size{initialSize}, onAppear {std::move(onAppear)} {}
-
+    Effect() = default;
+ 
     void setVelocity(glm::vec2 _velocity) { velocity = _velocity; }
     glm::vec2 getVelocity() const { return velocity; }
 
-    void update(float dt, World &world) override
-    {
-        position.x += velocity.x * dt;
-        position.y += velocity.y * dt;
-
-        size += sizeVelocity * dt;
-        lifetime -= dt;
-
-        sprite.setRotation(sprite.getRotation() + angularVelocity * dt);
-        sprite.setPosition(position.x, position.y);
-        sprite.setOrigin(sprite.getTexture()->getSize().x / 2, sprite.getTexture()->getSize().y / 2);
-        sprite.setColor(sf::Color{255, 255, 255, static_cast<sf::Uint8>(255 * lifetime / initialLifetime)});
-
-        const auto maxDimension = std::max(sprite.getTexture()->getSize().x, sprite.getTexture()->getSize().y);
-        const auto scale = static_cast<float>(size) / maxDimension;
-        sprite.setScale(scale, scale);
-    }
+    void update(float dt, World &world) override;
 
     void setSize(uint8_t _size) override { size = _size; }
     void setSize(float _size) { size = _size; }
@@ -141,9 +149,9 @@ public:
 protected:
     void draw(sf::RenderTarget &target, sf::RenderStates states) const override;
 
-    void onReady(World &world) override { onAppear(*this, world); }
+    void onReady(World &world) override { if (onAppear) onAppear(*this, world); }
 
-private:
+protected:
     glm::vec3 position = {};
     glm::vec2 velocity = {};
     sf::Sprite sprite;
@@ -155,4 +163,21 @@ private:
     float size = 1.0f;
 
     std::function<void(Effect&,World &)> onAppear;
+};
+
+class Bullet : public Effect
+{
+public:
+    Bullet() = default;
+    Bullet(glm::vec3 position, glm::vec2 velocity)
+    {
+        setPosition(position);
+        setVelocity(velocity);
+    }
+    void update(float dt, World &world) override;
+
+    void setPayload(std::unique_ptr<Effect> effect) { payload = std::move(effect); }
+
+private:
+    std::unique_ptr<Effect> payload;
 };
