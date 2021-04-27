@@ -71,8 +71,17 @@ public:
     
     void Update(float dt);
 
+    std::shared_ptr<WorldGenerator> getGenerator() const { return generator; }
     void setGenerator(std::shared_ptr<WorldGenerator> _generator) { generator = std::move(_generator); }
+
     void trimLevelsAbove(int minimalInterestingDepth);
+
+    // simple collision detection
+    void registerForCollision(Actor *actor) { collideableActors.insert(actor); }
+
+    void unregisterForCollision(Actor *actor) { collideableActors.erase(actor); }
+
+    const std::vector<Actor *> &queryPoint(glm::vec3 point);
 
 private:
     void onLayerLoaded(const LevelLayer &layer);
@@ -91,5 +100,6 @@ private:
     std::deque<Layer> layers;
     
     ActorsList actors;
+    std::unordered_set<Actor*> collideableActors;
 };
 

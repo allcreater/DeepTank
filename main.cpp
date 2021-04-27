@@ -30,8 +30,8 @@ namespace
             center - glm::ivec2{radius}, center + glm::ivec2{radius});
     }
 
-    using ResourceInventory = std::unordered_map<TileClassId, int>;
-    ResourceInventory HarvestResources(World &world, glm::ivec3 pos, int radius, int16_t gatherForce)
+    using ResourceSet = std::unordered_map<TileClassId, int>;
+    ResourceSet HarvestResources(World &world, glm::ivec3 pos, int radius, int16_t gatherForce)
     {
         std::unordered_map<TileClassId, int> harvest;
 
@@ -42,22 +42,38 @@ namespace
         return harvest;
     }
 
-    std::unique_ptr<Effect> MakeExplosionEffect(glm::vec3 position, int radius, const sf::Texture& texture, float gatherForce = 1.0f, ResourceInventory* inventory = nullptr)
+    void HarvestToInventory(ResourceSet &&harvest, Tank::Inventory &inventory, std::span<const TileClass> classes)
+    {
+        for (auto [tileClassId, amount] : harvest)
+        {
+            inventory.amountMinerals += classes[tileClassId].value;
+        }
+
+        inventory.amountOil += harvest[10];
+    }
+
+    std::unique_ptr<Effect> MakeExplosionEffect(glm::vec3 position, int radius, const sf::Texture& texture, float gatherForce = 1.0f, float damage = 0.5f, std::shared_ptr<Tank> gatherer = {})
     {
         auto effect = std::make_unique<Effect>(position, glm::vec2{}, 0.1f, 0.0f, 200.0, 4.0f, [=](Effect &effect, World &world) {
            if (auto *layer = world.getLayer(effect.getPosition().z))
            {
                auto harvest = HarvestResources(world, effect.getPosition(), radius, gatherForce);
-               if (inventory)
-               {
-                   for (auto [tileClassId, amount] : harvest)
-                       (*inventory)[tileClassId] += amount;
-               }
+               if (gatherer)
+                HarvestToInventory(std::move(harvest), gatherer->inventory, world.getGenerator()->getClasses());
            }
+
+            auto &collisions = world.queryPoint(effect.getPosition());
+            for (auto *object : collisions | std::ranges::views::filter([](auto *x) { return dynamic_cast<Character *>(x); }))
+            {
+                if (object != gatherer.get())
+                    static_cast<Character *>(object)->damage(damage);
+            }
        });
         effect->setTexture(texture);
         return effect;
     }
+
+    
 
 } // namespace
 
@@ -124,16 +140,17 @@ private:
         std::visit(overloaded{
             [&](KeyPressed key)
             {
-                if (key.code == sf::Keyboard::E)
-                  visibleLayer++;
-                else if (key.code == sf::Keyboard::Q)
-                  visibleLayer--;
-                else if (key.code == sf::Keyboard::F10)
+                if (key.code == sf::Keyboard::F10)
                     StartNewGame();
                 else if (key.code == sf::Keyboard::F1)
                 {
                     auto* layer = world->getLayer(playerActor->getPosition().z + 1);
                     FillRoundArea(*layer, playerActor->getPositionOnLayer(), 20);
+                }
+                else if (key.code == sf::Keyboard::Q)
+                {
+                    if (playerActor)
+                        playerActor->setActiveWeapon((playerActor->getActiveWeapon() + 1) % 2);
                 }
             },
             [&](MouseButtonPressed button)
@@ -152,11 +169,13 @@ private:
         loadTextureOrThrow(tankTowerTexture, "Resources/only_tower.png");
         loadTextureOrThrow(tankDrillTexture, "Resources/drill.png");
         loadTextureOrThrow(baseTexture, "Resources/basa.png");
+        loadTextureOrThrow(smallEnemyTexture, "Resources/40leggs.png");
+        loadTextureOrThrow(bigEnemyTexture, "Resources/scorp.png");
 
         loadTextureOrThrow(flameTexture, "Resources/effect_flame.png");
         loadTextureOrThrow(glowTexture, "Resources/effect_glow.png");
 
-        if (!font.loadFromFile("Resources/third-party/Freedom-nZ4J.otf"))
+        if (!font.loadFromFile("Resources/third-party/Nasa21-l23X.ttf"))
             throw std::runtime_error{"font could'nt be loaded"s};
 
         StartNewGame();
@@ -168,18 +187,20 @@ private:
         world->setGenerator(std::make_shared<WorldGenerator>(glm::uvec2{256, 256}));
 
         {
-            auto baseActor = std::make_unique<Base>();
+            baseActor = std::make_unique<Base>();
             baseActor->setTexture(baseTexture);
-            baseActor->setSize(30);
+            baseActor->setSize(15);
             baseActor->setPosition({128, 128, 0.0});
+            baseActor->setHP(100.0);
 
-            world->addActor(std::move(baseActor));
+            world->addActor(baseActor);
         }
 
         {
             playerActor = std::make_unique<Tank>();
             playerActor->setTexture(tankTexture);
-            playerActor->setSize(4);
+            playerActor->setMaxSpeed(10.0f);
+            playerActor->setSize(2);
             playerActor->setPosition({128, 128, 0.0});
             playerActor->setAdditionalTextures(tankTowerTexture, tankDrillTexture);
 
@@ -189,8 +210,8 @@ private:
             {
                 auto bullet = std::make_unique<Bullet>(instigator.getPosition(), instigator.getVelocity() + direction * 100.0f);
                 bullet->setPosition(instigator.getPosition() +
-                    glm::vec3{direction * static_cast<float>(instigator.getSize() * 0.5f), 0.0f});
-                bullet->setPayload(MakeExplosionEffect(glm::vec3{}, 6, flameTexture, 6));
+                    glm::vec3{direction * static_cast<float>(instigator.getSize() * 2.0f), 0.0f});
+                bullet->setPayload(MakeExplosionEffect(glm::vec3{}, 6, flameTexture, 6, 0.5f));
                 bullet->setTexture(glowTexture);
                 return bullet;
             }, 0.6f);
@@ -199,11 +220,46 @@ private:
             playerActor->getWeaponList().emplace_back(
                 [&](Character &instigator, glm::vec2 direction) {
                     return MakeExplosionEffect(instigator.getPosition() +
-                            glm::vec3{instigator.getFrontDirection() * static_cast<float>(instigator.getSize() * 0.5f), 0.0f},
-                                               2, flameTexture, 3.0f, &inventory);
+                            glm::vec3{instigator.getFrontDirection() * static_cast<float>(instigator.getSize() * 1.0f), 0.0f},
+                                               2, flameTexture, 3.0f,0.1f, playerActor);
             }, 0.1f, std::numeric_limits<int>::max());
 
             world->addActor(playerActor);
+        }
+
+        {
+            for (int i = 0; i < 100; ++i)
+            {
+                std::uniform_real_distribution<float> posDistribution{-32, 256 - 32};
+
+                auto actor = std::make_shared<Enemy>();
+                actor->setTexture(smallEnemyTexture);
+                actor->setSize(2);
+                actor->setPosition({posDistribution(random), posDistribution(random), 0.0});
+                //actor->setPosition({120,120, 0.0});
+                actor->setHP(0.5f);
+                actor->setMaxSpeed(2.0);
+                actor->chasingActor = playerActor;
+
+                world->addActor(std::move(actor));
+            }
+
+            for (int i = 0; i < 10; ++i)
+            {
+                std::uniform_real_distribution<float> posDistribution{-32, 256 - 32};
+
+                auto actor = std::make_shared<Enemy>();
+                actor->setTexture(bigEnemyTexture);
+                actor->setMaxSpeed(0.5);
+                actor->setSize(4);
+                actor->setPosition({posDistribution(random), posDistribution(random), 0.0});
+                // actor->setPosition({120,120, 0.0});
+                actor->setHP(20.0f);
+                actor->chasingActor = playerActor;
+                actor->buildingRange = 4;
+
+                world->addActor(std::move(actor));
+            }
         }
 
 
@@ -212,17 +268,20 @@ private:
 
     void Update(float dt)
     {
+        sf::View view{{cameraPosition.x, cameraPosition.y},
+                      {static_cast<float>(window.getSize().x), static_cast<float>(window.getSize().y)}};
+        window.setView(view);
+
         // player input
         if (playerActor && playerActor->isAlive())
         {
-            constexpr auto moveSpeed = 10.0f;
             constexpr auto rotateSpeed = 3.0f;
 
             glm::vec2 velocity{};
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::W))
-                velocity = playerActor->getFrontDirection() * moveSpeed;
+                velocity = playerActor->getFrontDirection() * playerActor->getMaxSpeed();
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::S))
-                velocity = playerActor->getFrontDirection() * moveSpeed * -0.5f;
+                velocity = playerActor->getFrontDirection() * playerActor->getMaxSpeed() * -0.5f;
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::A))
                 playerActor->setRotation(playerActor->getRotation() - rotateSpeed * dt);
             if (sf::Keyboard::isKeyPressed(sf::Keyboard::D))
@@ -246,7 +305,7 @@ private:
 
                 if (sf::Mouse::isButtonPressed(sf::Mouse::Right))
                 {
-                    playerActor->setActiveWeapon((playerActor->getActiveWeapon() + 1) % 2);
+                    //playerActor->setActiveWeapon(0);
                     playerActor->triggerShoot();
                     // auto bullet = std::make_unique<Bullet>(playerActor->getPosition(), directionToMouse * 90.0f);
                     // bullet->setPayload(MakeExplosionEffect(glm::vec3{to_glm(pos), visibleLayer}, 4, flameTexture));
@@ -262,7 +321,7 @@ private:
 
             playerActor->setVelocity(velocity);
 
-            world->trimLevelsAbove(playerActor->getPosition().z);
+            world->trimLevelsAbove(playerActor->getPosition().z-1);
         }
 
         if (!world)
@@ -281,13 +340,17 @@ private:
         // Clear screen
         window.clear(sf::Color::Black);
 
-        if (playerActor->isAlive())
+        if (playerActor->isAlive() && baseActor->isAlive())
         {
-            sf::View view{{cameraPosition.x, cameraPosition.y},
-                          {static_cast<float>(window.getSize().x), static_cast<float>(window.getSize().y)}};
-            window.setView(view);
-
             window.draw(*worldRenderer);
+
+            window.setView(window.getDefaultView());
+
+            sf::Text text{"Resources:\n "s + std::to_string(playerActor->inventory.amountMinerals) + " minerals\n "s + 
+                std::to_string(playerActor->inventory.amountOil) + " oil.\n\n Base structure: "s + std::to_string(baseActor->getHP())
+                , font, 30};
+
+            window.draw(text);
         }
         else
         {
@@ -308,18 +371,19 @@ private:
     sf::Texture tankTexture, tankTowerTexture, tankDrillTexture;
     sf::Texture baseTexture;
     sf::Texture flameTexture, glowTexture;
+    sf::Texture smallEnemyTexture, bigEnemyTexture;
 
     sf::Font font;
 
+    std::mt19937 random;
     std::unique_ptr<World> world;
 
     std::unique_ptr<WorldRenderer> worldRenderer;
     sf::Vector2f cameraPosition = {128, 128};
     int visibleLayer = 0;
 
-    // mostly cruthes
     std::shared_ptr<Tank> playerActor = nullptr;
-    ResourceInventory inventory;
+    std::shared_ptr<Base> baseActor = nullptr;
 };
 
 int main()

@@ -12,6 +12,7 @@ struct TileClass
     const TileClassId id;
     std::string name;
     int16_t initialStrength = 1;
+    int16_t value = 0;
     bool isSolid = true;
 };
 

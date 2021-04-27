@@ -4,6 +4,11 @@
 
 #include "WorldGenerator.h" // For drawing on level
 
+void Character::onReady(World &world)
+{
+    world.registerForCollision(this);
+}
+
 void Character::draw(sf::RenderTarget &target, sf::RenderStates states) const
 {
     target.draw(sprite, states);
@@ -50,7 +55,7 @@ void Character::update(float dt, World &world)
     sprite.setOrigin(sprite.getTexture()->getSize().x / 2, sprite.getTexture()->getSize().y / 2);
 
     const auto maxDimension = std::max(sprite.getTexture()->getSize().x, sprite.getTexture()->getSize().y);
-    const auto scale = static_cast<float>(getSize()) / maxDimension;
+    const auto scale = static_cast<float>(getSize() * 2) / maxDimension;
     sprite.setScale(scale, scale);
     sprite.setRotation(glm::degrees(rotation) + 90.0f);
 
@@ -81,10 +86,17 @@ void Tank::draw(sf::RenderTarget &target, sf::RenderStates states) const
 
 void Base::onReady(World &world)
 {
+    Character::onReady(world);
+
     auto *layer = world.getLayer(getPosition().z);
     assert(layer);
 
     FillRoundArea(*layer, getPositionOnLayer(), getSize());
+}
+
+void Base::update(float dt, World &world)
+{
+    Character::update(dt, world);
 }
 
 void Effect::update(float dt, World &world)
@@ -107,6 +119,8 @@ void Effect::update(float dt, World &world)
 
 void Tank::onReady(World &world)
 {
+    Character::onReady(world);
+
     auto *layer = world.getLayer(getPosition().z);
     assert(layer);
 
@@ -128,6 +142,20 @@ void Tank::update(float dt, World &world)
     drillSprite.setScale(sprite.getScale());
     drillSprite.setRotation(sprite.getRotation());
     drillSprite.setPosition(sprite.getPosition() + sf::Vector2f{cos(angle), sin(angle)} * 2.0f );
+
+    const auto& collisions =  world.queryPoint(getPosition());
+    for (auto* object : collisions)
+    {
+        if (auto *base = dynamic_cast<Base*>(object))
+        {
+            for (auto& weapon : weaponList)
+                weapon.amunition = std::max(weapon.amunition, weapon.fullAmunition);
+        }
+        else if (auto *enemy = dynamic_cast<Enemy *>(object))
+        {
+            damage(enemy->getNearDamage() * dt);
+        }
+    }
 }
 
 void Effect::draw(sf::RenderTarget &target, sf::RenderStates states) const
@@ -141,13 +169,54 @@ void Bullet::update(float dt, World &world)
     Effect::update(dt, world);
 
     const auto currentTileType = world.categorizeTile(getPosition());
-    if (currentTileType == World::CellType::Wall)
+    if (currentTileType == World::CellType::Wall || !world.queryPoint(getPosition()).empty())
     {
         lifetime = 0.0f;
         if (payload)
         {
             payload->setPosition(getPosition());
             world.addActor(std::move(payload));
+            return;
+        }
+    }
+
+}
+
+void Enemy::update(float dt, World &world)
+{
+    Character::update(dt, world);
+
+    if (auto chasingObj = chasingActor.lock())
+    {
+        const auto dir = (chasingObj->getPositionOnLayer() - getPositionOnLayer());
+        if (length(dir) > 0)
+        {
+            setRotation(atan2f(dir.y, dir.x));
+            setVelocity(normalize(dir) * getMaxSpeed());
+        }
+
+        const auto newPos = glm::vec3{getPositionOnLayer() + getVelocity() * dt, getPosition().z};
+        const auto tileAhead = world.categorizeTile(glm::ivec3{newPos});
+
+        auto *layer = world.getLayer(getPosition().z);
+        auto *layerBeneath = world.getLayer(getPosition().z + 1);
+
+        if (!layerBeneath || !layer)
+            return;
+
+        if (tileAhead == World::CellType::Wall && buildingRange <= 0)
+        {
+            layerBeneath->getTile(xy(newPos)) = layer->getTile(xy(newPos));
+            layer->getTile(xy(newPos)) = Tile::Empty();
+        }
+        else if (tileAhead == World::CellType::Empty && buildingRange > 0)
+        {
+            FillRoundArea(*layer, getPositionOnLayer(), buildingRange);
+
+            Tile tile{};
+            tile.classId = 10;
+            tile.actualStrength = 1;
+            FillRoundArea(*layerBeneath, getPositionOnLayer(), buildingRange, tile);
         }
     }
 }

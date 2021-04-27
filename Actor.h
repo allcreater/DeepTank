@@ -4,7 +4,7 @@
 
 class World;
 
-class Actor : public sf::Drawable //TODO: ActorRenderer
+class Actor : public sf::Drawable // TODO: ActorRenderer, remove shared_from_this
 {
 public:
     virtual void update(float dt, World &world) = 0;
@@ -40,12 +40,17 @@ struct Weapon
 
     float reloadTime = 0.2f;
     int amunition = 100;
+    int fullAmunition = 100;
     float reloadTimer = 0.0f;
 };
 
 class Character : public Actor
 {
 public:
+    void setMaxSpeed(float speed) { maxSpeed = speed; }
+    float getMaxSpeed() const { return maxSpeed; }
+
+
     void setVelocity(glm::vec2 _velocity) { velocity = _velocity; }
     glm::vec2 getVelocity() const { return velocity; }
 
@@ -77,6 +82,8 @@ public:
 
     void setTexture(const sf::Texture &texture) { sprite.setTexture(texture); }
 
+    void onReady(World &world) override;
+
 protected:
     void draw(sf::RenderTarget &target, sf::RenderStates states) const override;
 
@@ -99,11 +106,19 @@ private:
     glm::vec2 velocity = {};
     float hp = 1.0f;
     uint8_t size = 1;
+    float maxSpeed = 1.0;
 };
 
 
 class Tank : public Character
 {
+public:
+    struct Inventory
+    {
+        int amountMinerals = 0;
+        int amountOil = 0;
+    } inventory;
+
 public:
     void onReady(World &world) override;
     void update(float dt, World &world) override;
@@ -126,6 +141,7 @@ class Base : public Character
 {
 public:
     void onReady(World &world) override;
+    void update(float dt, World &world) override;
 };
 
 
@@ -151,7 +167,7 @@ public:
         velocity{velocity}, lifetime{lifetime}, angularVelocity{angularVelocity},
         sizeVelocity{sizeVelocity}, size{initialSize}, onAppear {std::move(onAppear)} {}
     Effect() = default;
- 
+
     void setVelocity(glm::vec2 _velocity) { velocity = _velocity; }
     glm::vec2 getVelocity() const { return velocity; }
 
@@ -204,3 +220,19 @@ public:
 private:
     std::unique_ptr<Effect> payload;
 };
+
+class Enemy : public Character
+{
+public:
+    void update(float dt, World &world) override;
+
+    float getNearDamage() const { return nearDamage; }
+    void setNearDamage(float damage) { nearDamage = damage; }
+
+    int buildingRange = 0;
+    std::weak_ptr<Character> chasingActor;
+
+private:
+    float nearDamage = 0.1;
+};
+

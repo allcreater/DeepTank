@@ -4,16 +4,16 @@
 WorldGenerator::WorldGenerator(glm::uvec2 horizontalDimensions):
     horizontalDimensions{horizontalDimensions}
 {
-    tileClasses.emplace_back(0, "empty"s, 0, false);
+    tileClasses.emplace_back(0, "empty"s, 0, 0, false);
     tileClasses.emplace_back(1, "dirt"s, 5);
     tileClasses.emplace_back(2, "rock"s, 20);
-    tileClasses.emplace_back(3, "cuprum_ore"s, 3);
-    tileClasses.emplace_back(4, "mineral_sapphire"s, 4);
-    tileClasses.emplace_back(5, "mineral_emerald"s, 4);
-    tileClasses.emplace_back(6, "mineral_amethyst"s, 4);
-    tileClasses.emplace_back(7, "mineral_opal"s, 4);
-    tileClasses.emplace_back(8, "gold_ore"s, 3);
-    tileClasses.emplace_back(9, "mineral_ruby"s, 10);
+    tileClasses.emplace_back(3, "cuprum_ore"s, 3, 1);
+    tileClasses.emplace_back(4, "mineral_sapphire"s, 4, 4);
+    tileClasses.emplace_back(5, "mineral_emerald"s, 4, 5);
+    tileClasses.emplace_back(6, "mineral_amethyst"s, 4, 3);
+    tileClasses.emplace_back(7, "mineral_hz"s, 4, 6);
+    tileClasses.emplace_back(8, "gold_ore"s, 3, 2);
+    tileClasses.emplace_back(9, "mineral_ruby"s, 10, 10);
     tileClasses.emplace_back(10, "fuel"s, 1);
 }
 
@@ -52,7 +52,7 @@ void WorldGenerator::generateLevelLayer(LevelLayer& currentLayer)
         if (tileClasses[tile.classId].isSolid)
         {
 
-            for (TileClassId i = 3; i < 10; ++i)
+            for (TileClassId i = 3; i <= 10; ++i)
             {
                 const auto frequency = i * 0.02f;
                 const auto x = smallNoise.GetValue(pos.x * frequency, pos.y * frequency, depth + 1000 * i);

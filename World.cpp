@@ -207,6 +207,21 @@ void World::trimLevelsAbove(int minimalInterestingDepth)
 
 }
 
+const std::vector<Actor *> &World::queryPoint(glm::vec3 point)
+{
+    static std::vector<Actor *> container;
+    container.clear();
+
+    for (auto* actor : collideableActors)
+    {
+        if (floor(actor->getPosition().z) == floor(point.z) &&
+            glm::length(xy(actor->getPosition()) - xy(point)) <= static_cast<float>(actor->getSize()))
+            container.push_back(actor);
+    }
+
+    return container;
+}
+
 void World::onLayerLoaded(const LevelLayer &layer)
 {
     for (const auto &actor : actors)
@@ -221,6 +236,7 @@ void World::callOnReadyForActor(const std::shared_ptr<Actor> &actor, const Level
 
 void World::callOnDestroyForActor(const std::shared_ptr<Actor> &actor)
 {
+    unregisterForCollision(actor.get());
     actor->onDestroy(*this);
     actor->setWorld(nullptr);
 }
