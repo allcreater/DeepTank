@@ -83,6 +83,8 @@ public:
 
     const std::vector<Actor *> &queryPoint(glm::vec3 point);
 
+    size_t getFrameStamp() const { return frameStamp; }
+
 private:
     void onLayerLoaded(const LevelLayer &layer);
     void callOnReadyForActor(const std::shared_ptr<Actor> &actor, const LevelLayer &layer);
@@ -98,7 +100,8 @@ private:
     int firstLayerDepth = 0;
 
     std::deque<Layer> layers;
-    
+
+    size_t frameStamp = 0;
     ActorsList actors;
     std::unordered_set<Actor*> collideableActors;
 };

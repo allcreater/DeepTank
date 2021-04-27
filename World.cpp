@@ -155,6 +155,7 @@ Actor &World::addActor(std::shared_ptr<Actor> actor)
 
 void World::Update(float dt)
 {
+    frameStamp++;
 
     // включаем загруженные слои
     for (auto& layer : layers)

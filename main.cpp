@@ -90,10 +90,13 @@ public:
     void Run()
     {
         window.create(sf::VideoMode(1280, 800), title);
+        window.setVerticalSyncEnabled(true);
 
         Init();
 
         auto prevTime = std::chrono::high_resolution_clock::now();
+
+        float averageDt = 0.0f;
 
         sf::Clock performanceCounterClock;
         size_t fps = 0;
@@ -112,7 +115,8 @@ public:
             const float dt = std::chrono::duration_cast<std::chrono::microseconds>(newTime - prevTime).count() / 1000000.0f;
             prevTime = newTime;
 
-            Update(dt);
+            averageDt = glm::mix(averageDt, dt, 0.01f);
+            Update(averageDt);
             Render();
 
             if (performanceCounterClock.getElapsedTime().asSeconds() >= 1.0f)
@@ -227,15 +231,27 @@ private:
             world->addActor(playerActor);
         }
 
+
+        auto generateSafePos = [this]()
+        {
+            std::uniform_real_distribution<float> posDistribution{-32, 256 - 32};
+
+            glm::vec2 pos{};
+            do
+            {
+                pos = {posDistribution(random), posDistribution(random)};
+            } while (length(pos - glm::vec2{128, 128}) <= 30.0);
+
+            return pos;
+        };
+
         {
             for (int i = 0; i < 100; ++i)
             {
-                std::uniform_real_distribution<float> posDistribution{-32, 256 - 32};
-
                 auto actor = std::make_shared<Enemy>();
                 actor->setTexture(smallEnemyTexture);
                 actor->setSize(2);
-                actor->setPosition({posDistribution(random), posDistribution(random), 0.0});
+                actor->setPosition({generateSafePos(), 0.0});
                 //actor->setPosition({120,120, 0.0});
                 actor->setHP(0.5f);
                 actor->setMaxSpeed(2.0);
@@ -246,17 +262,15 @@ private:
 
             for (int i = 0; i < 10; ++i)
             {
-                std::uniform_real_distribution<float> posDistribution{-32, 256 - 32};
-
                 auto actor = std::make_shared<Enemy>();
                 actor->setTexture(bigEnemyTexture);
                 actor->setMaxSpeed(0.5);
                 actor->setSize(4);
-                actor->setPosition({posDistribution(random), posDistribution(random), 0.0});
+                actor->setPosition({generateSafePos(), 0.0});
                 // actor->setPosition({120,120, 0.0});
                 actor->setHP(20.0f);
                 actor->chasingActor = playerActor;
-                actor->buildingRange = 4;
+                actor->buildingRange = 2;
 
                 world->addActor(std::move(actor));
             }
@@ -357,7 +371,7 @@ private:
             window.setView(window.getDefaultView());
 
             sf::Text text{"Game over", font, 80};
-            sf::Vector2u position = window.getSize() / 2u - sf::Vector2u{static_cast<unsigned>(text.getGlobalBounds().width), static_cast<unsigned>(text.getGlobalBounds().height)} / 2u;
+            sf::Vector2u position = window.getSize() / 2u - sf::Vector2u{static_cast<unsigned>(text.getGlobalBounds().width), static_cast<unsigned>(text.getGlobalBounds().height)};
             text.setPosition(position.x, position.y);
             window.draw(text);
         }

@@ -92,6 +92,7 @@ void Base::onReady(World &world)
     assert(layer);
 
     FillRoundArea(*layer, getPositionOnLayer(), getSize());
+    world.unregisterForCollision(this);
 }
 
 void Base::update(float dt, World &world)
@@ -204,12 +205,16 @@ void Enemy::update(float dt, World &world)
         if (!layerBeneath || !layer)
             return;
 
+        // Changes the world synchronously and one time per 50 frames
+        if (world.getFrameStamp() % 50 != 0)
+            return;
+        
         if (tileAhead == World::CellType::Wall && buildingRange <= 0)
         {
             layerBeneath->getTile(xy(newPos)) = layer->getTile(xy(newPos));
             layer->getTile(xy(newPos)) = Tile::Empty();
         }
-        else if (tileAhead == World::CellType::Empty && buildingRange > 0)
+        else if (tileAhead == World::CellType::Empty || tileAhead == World::CellType::Wall  && buildingRange > 0)
         {
             FillRoundArea(*layer, getPositionOnLayer(), buildingRange);
 
