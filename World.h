@@ -21,10 +21,14 @@ public:
     Tile &getTile(glm::ivec2 pos);
     const Tile &getTile(glm::ivec2 pos) const;
 
-    void visit(const std::function<void(glm::ivec2, Tile &)> &visitor);
-    void visit(const std::function<void(glm::ivec2, const Tile &)> &visitor) const;
-    void visit(const std::function<void(glm::ivec2, Tile &)> &visitor, glm::ivec2 from, glm::ivec2 to);
-    void visit(const std::function<void(glm::ivec2, const Tile &)> &visitor, glm::ivec2 from, glm::ivec2 to) const;
+    template <std::invocable<glm::ivec2, Tile &> F>
+    void visit(F&& visitor);
+    template <std::invocable<glm::ivec2, const Tile &> F>
+    void visit(F &&visitor) const;
+    template <std::invocable<glm::ivec2, Tile &> F>
+    void visit(F &&visitor, glm::ivec2 from, glm::ivec2 to);
+    template <std::invocable<glm::ivec2, const Tile &> F>
+    void visit(F &&visitor, glm::ivec2 from, glm::ivec2 to) const;
 
     void setData(std::vector<Tile> &&data);
 
@@ -106,3 +110,44 @@ private:
     std::unordered_set<Actor*> collideableActors;
 };
 
+
+template <std::invocable<glm::ivec2, const Tile &> F>
+void LevelLayer::visit(F &&visitor) const
+{
+    visit(visitor, {0, 0}, size);
+}
+
+template <std::invocable<glm::ivec2, Tile&> F>
+void LevelLayer::visit(F &&visitor)
+{
+    visit(visitor, {0, 0}, size);
+}
+
+template <std::invocable<glm::ivec2, const Tile &> F>
+void LevelLayer::visit(F &&visitor, glm::ivec2 from,
+                       glm::ivec2 to) const
+{
+    from = max({0, 0}, from);
+    to = min(size, to);
+
+    for (auto y = from.y; y < to.y; ++y)
+        for (auto x = from.x; x < to.x; ++x)
+        {
+            visitor({x, y}, getTileUnsafe({x, y}));
+        }
+}
+
+template <std::invocable<glm::ivec2, Tile &> F>
+void LevelLayer::visit(F &&visitor, glm::ivec2 from, glm::ivec2 to)
+{
+    from = max({0, 0}, from);
+    to = min(size, to);
+
+    for (auto y = from.y; y < to.y; ++y)
+        for (auto x = from.x; x < to.x; ++x)
+        {
+            visitor({x, y}, getTileUnsafe({x, y}));
+        }
+
+    revision++;
+}

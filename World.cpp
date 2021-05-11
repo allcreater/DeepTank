@@ -45,29 +45,6 @@ const Tile &LevelLayer::getTile(glm::ivec2 pos) const
     return Tile::Empty();
 }
 
-void LevelLayer::visit(const std::function<void(glm::ivec2, Tile &)> &visitor)
-{
-    visit(visitor, {0, 0}, size);
-}
-
-void LevelLayer::visit(const std::function<void(glm::ivec2, const Tile &)> &visitor) const
-{
-    visit(visitor, {0, 0}, size);
-}
-
-void LevelLayer::visit(const std::function<void(glm::ivec2, const Tile &)> &visitor, glm::ivec2 from,
-                       glm::ivec2 to) const
-{
-    from = max({0, 0}, from);
-    to = min(size, to);
-
-    for (auto y = from.y; y < to.y; ++y)
-    for (auto x = from.x; x < to.x; ++x)
-    {
-        visitor({x, y}, getTileUnsafe({x, y}));
-    }
-}
-
 void LevelLayer::setData(std::vector<Tile> &&data)
 {
     if (data.size() != (size.x * size.y))
@@ -77,19 +54,6 @@ void LevelLayer::setData(std::vector<Tile> &&data)
     revision = 0;
 }
 
-void LevelLayer::visit(const std::function<void(glm::ivec2, Tile &)> &visitor, glm::ivec2 from, glm::ivec2 to)
-{
-    from = max({0, 0}, from);
-    to = min(size, to);
-
-    for (auto y = from.y; y < to.y; ++y)
-    for (auto x = from.x; x < to.x; ++x)
-    {
-        visitor({x, y}, getTileUnsafe({x, y}));
-    }
-
-    revision++;
-}
 
 World::World()
 {
@@ -127,7 +91,7 @@ World::CellType World::categorizeTile(glm::ivec3 point) const
     const auto horizontalPoint = glm::ivec2{point.x, point.y};
     const auto& wallClass = generator->getClasses()[wallLayer->getTile(horizontalPoint).classId];
     if (wallClass.isSolid)
-        return World::CellType::Wall;
+        return CellType::Wall;
 
     const auto *floorLayer = getLayer(point.z + 1);
     if (!floorLayer || !floorLayer->isLoaded())
@@ -216,7 +180,7 @@ const std::vector<Actor *> &World::queryPoint(glm::vec3 point)
     for (auto* actor : collideableActors)
     {
         if (floor(actor->getPosition().z) == floor(point.z) &&
-            glm::length(xy(actor->getPosition()) - xy(point)) <= static_cast<float>(actor->getSize()))
+            length(xy(actor->getPosition()) - xy(point)) <= static_cast<float>(actor->getSize()))
             container.push_back(actor);
     }
 

@@ -1,9 +1,12 @@
+#pragma once
+
 #include <glm/glm.hpp>
 #include <glm/gtx/vec_swizzle.hpp>
 
 #include <algorithm>
 #include <cassert>
 #include <chrono>
+#include <concepts>
 #include <deque>
 #include <functional>
 #include <future>
